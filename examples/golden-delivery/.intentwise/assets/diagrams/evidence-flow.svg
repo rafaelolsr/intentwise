@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="260" viewBox="0 0 960 260" role="img" aria-labelledby="title desc">
+  <title id="title">Intentwise evidence flow</title>
+  <desc id="desc">Acceptance criteria define required evidence. The harness obtains observed evidence, Intentwise assigns a result, the validator checks record consistency, and verified records move to completed provenance.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#486581"/>
+    </marker>
+    <style>
+      .box { fill: #f7fafc; stroke: #486581; stroke-width: 2; rx: 12; }
+      .verified { fill: #e6fffa; stroke: #2c7a7b; }
+      .label { font: 600 16px system-ui, sans-serif; fill: #102a43; text-anchor: middle; }
+      .detail { font: 13px system-ui, sans-serif; fill: #486581; text-anchor: middle; }
+      .line { stroke: #486581; stroke-width: 2; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="box" x="20" y="70" width="160" height="100"/>
+  <text class="label" x="100" y="105">Criterion</text>
+  <text class="detail" x="100" y="132">Required level</text>
+  <line class="line" x1="180" y1="120" x2="235" y2="120"/>
+  <rect class="box" x="240" y="70" width="170" height="100"/>
+  <text class="label" x="325" y="105">Harness</text>
+  <text class="detail" x="325" y="132">Observed evidence</text>
+  <line class="line" x1="410" y1="120" x2="465" y2="120"/>
+  <rect class="box" x="470" y="70" width="170" height="100"/>
+  <text class="label" x="555" y="105">Intentwise</text>
+  <text class="detail" x="555" y="132">PASS / FAIL /</text>
+  <text class="detail" x="555" y="151">UNPROVEN</text>
+  <line class="line" x1="640" y1="120" x2="695" y2="120"/>
+  <rect class="box verified" x="700" y="45" width="240" height="150"/>
+  <text class="label" x="820" y="82">Structural validator</text>
+  <text class="detail" x="820" y="110">Observed ≥ required?</text>
+  <text class="detail" x="820" y="132">Record complete?</text>
+  <text class="label" x="820" y="169">completed/ provenance</text>
+</svg>

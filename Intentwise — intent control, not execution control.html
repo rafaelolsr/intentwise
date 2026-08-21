@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Intentwise — intent control, not execution control</title>
+  <style>
+    :root {
+      --paper: #f3efe4;
+      --paper-deep: #e9e1d0;
+      --surface: #fffdf7;
+      --surface-raised: #ffffff;
+      --ink: #1d2926;
+      --ink-soft: #4c5b56;
+      --ink-faint: #7b8680;
+      --line: #b9b5a9;
+      --line-strong: #777d77;
+      --teal: #16836f;
+      --teal-soft: #dcefe9;
+      --amber: #c47a22;
+      --amber-soft: #f6e7cd;
+      --danger: #a94f3f;
+      --font-display: Georgia, "Times New Roman", serif;
+      --font-body: Avenir, "Segoe UI", sans-serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 4%, rgba(22, 131, 111, .09), transparent 30%),
+        radial-gradient(circle at 88% 92%, rgba(196, 122, 34, .09), transparent 26%),
+        radial-gradient(circle, rgba(29, 41, 38, .11) 1px, transparent 1px),
+        var(--paper);
+      background-size: auto, auto, 22px 22px, auto;
+      font-family: var(--font-body);
+      overflow-wrap: break-word;
+    }
+
+    .shell {
+      width: min(1680px, 100%);
+      margin: 0 auto;
+      padding: clamp(28px, 5vw, 70px) clamp(18px, 4vw, 62px) 42px;
+    }
+
+    .masthead {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+      gap: 48px;
+      align-items: end;
+      margin-bottom: 32px;
+      animation: rise .55s cubic-bezier(.16, 1, .3, 1) both;
+    }
+
+    .eyebrow, .micro-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+
+    h1 {
+      max-width: 960px;
+      margin: 10px 0 0;
+      font-family: var(--font-display);
+      font-size: clamp(48px, 7vw, 104px);
+      font-weight: 400;
+      line-height: .92;
+      letter-spacing: -.055em;
+    }
+
+    h1 em { color: var(--teal); font-style: italic; }
+
+    .thesis {
+      border-left: 3px solid var(--amber);
+      padding: 6px 0 6px 22px;
+      font-family: var(--font-display);
+      font-size: clamp(19px, 2vw, 27px);
+      line-height: 1.25;
+      color: var(--ink-soft);
+    }
+
+    .diagram-frame {
+      position: relative;
+      border: 1px solid rgba(119, 125, 119, .48);
+      border-radius: 22px;
+      background: linear-gradient(145deg, rgba(255, 253, 247, .94), rgba(233, 225, 208, .72));
+      box-shadow: 0 28px 70px rgba(53, 58, 51, .12), inset 0 1px rgba(255,255,255,.88);
+      padding: 18px;
+      animation: rise .55s .12s cubic-bezier(.16, 1, .3, 1) both;
+    }
+
+    .diagram-frame::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(22,131,111,.035), transparent 36%, rgba(196,122,34,.035));
+    }
+
+    .phase-row {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    #phase-banner {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255, 253, 247, .82);
+      color: var(--teal);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.4;
+      transition: color .3s, border-color .3s;
+    }
+
+    .controls { display: flex; gap: 7px; }
+
+    .controls button {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--ink);
+      background: var(--surface);
+      font: 700 13px var(--font-mono);
+      cursor: pointer;
+      transition: transform .2s, border-color .2s, color .2s;
+    }
+
+    .controls button:hover { transform: translateY(-2px); border-color: var(--teal); color: var(--teal); }
+    .controls button:focus-visible { outline: 3px solid var(--amber-soft); outline-offset: 2px; }
+
+    .svg-scroll { position: relative; z-index: 1; overflow-x: auto; border-radius: 15px; }
+
+    .arch-svg {
+      display: block;
+      width: 100%;
+      min-width: 1080px;
+      height: auto;
+      max-height: 74vh;
+      font-family: var(--font-body);
+    }
+
+    .group-box, .source-box {
+      fill: var(--surface);
+      stroke: var(--line-strong);
+      stroke-width: 1.5;
+      transition: stroke .35s, filter .35s, fill .35s;
+    }
+
+    .group-box.hero { fill: var(--teal-soft); stroke: var(--teal); stroke-width: 2.2; }
+    .inner-box { fill: var(--surface-raised); stroke: var(--line); stroke-width: 1; }
+    .inner-box.amber { fill: var(--amber-soft); stroke: var(--amber); }
+    .comparison-left { fill: #ebe7dc; stroke: var(--line); }
+    .comparison-right { fill: var(--teal-soft); stroke: var(--teal); }
+
+    .arrow-path {
+      fill: none;
+      stroke: var(--line-strong);
+      stroke-width: 1.7;
+      marker-end: url(#arrowhead);
+      transition: stroke .35s, filter .35s, stroke-width .35s;
+    }
+
+    .arrow-path.return { stroke-dasharray: 6 6; }
+
+    .group-box.lit, .source-box.lit {
+      stroke: var(--glow-color);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 9px color-mix(in srgb, var(--glow-color) 42%, transparent));
+    }
+
+    .arrow-path.lit {
+      stroke: var(--glow-color);
+      stroke-width: 3;
+      filter: drop-shadow(0 0 5px color-mix(in srgb, var(--glow-color) 36%, transparent));
+    }
+
+    .group-title { font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 1.8px; fill: var(--ink-faint); }
+    .component-name { font-size: 15px; font-weight: 700; fill: var(--ink); }
+    .component-detail { font-size: 11px; fill: var(--ink-soft); }
+    .flow-label { font-size: 11px; font-weight: 600; fill: var(--ink-faint); }
+    .comparison-title { font-family: var(--font-display); font-size: 26px; fill: var(--ink); }
+    .comparison-copy { font-size: 13px; fill: var(--ink-soft); }
+    .comparison-kicker { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; fill: var(--ink-faint); }
+    .circle-label { font: 700 12px var(--font-mono); fill: var(--surface); text-anchor: middle; }
+
+    .legend {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 13px 8px 0;
+      color: var(--ink-soft);
+      font-size: 13px;
+    }
+
+    .legend strong { color: var(--ink); }
+    .legend .mono { font-family: var(--font-mono); font-size: 11px; }
+
+    @keyframes rise {
+      from { opacity: .15; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 820px) {
+      .shell { padding: 26px 14px; }
+      .masthead { grid-template-columns: 1fr; gap: 22px; }
+      .diagram-frame { padding: 10px; border-radius: 14px; }
+      .phase-row { grid-template-columns: 1fr; }
+      .controls { justify-content: flex-end; }
+      .legend { flex-direction: column; gap: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    @page { size: A4 landscape; margin: 9mm; }
+
+    @media print {
+      :root {
+        --paper: #ffffff;
+        --paper-deep: #f4f0e7;
+        --surface: #ffffff;
+        --surface-raised: #ffffff;
+        --ink: #18221f;
+        --ink-soft: #46534f;
+        --ink-faint: #69736e;
+        --line: #c4c1b8;
+        --line-strong: #717772;
+      }
+      html, body, .diagram-frame, .group-box, .source-box, .inner-box,
+      .comparison-left, .comparison-right {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      body { background: #fff; font-size: 9pt; }
+      .shell { width: 100%; padding: 0; }
+      .masthead { margin-bottom: 10pt; grid-template-columns: 1.4fr .6fr; gap: 20pt; }
+      h1 { font-size: 34pt; }
+      .thesis { font-size: 15pt; }
+      .controls, .legend { display: none !important; }
+      .diagram-frame { border: 0; box-shadow: none; padding: 0; break-inside: avoid; }
+      .phase-row { display: block; margin-bottom: 4pt; }
+      #phase-banner { min-height: 24pt; font-size: 8pt; }
+      .svg-scroll { overflow: visible; }
+      .arch-svg { min-width: 0; width: 100%; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">Intentwise / operating model</div>
+        <h1>Control the <em>consequences</em>, not the coding.</h1>
+      </div>
+      <div class="thesis">Intentwise places a thin human decision boundary around an existing coding harness. It does not become the harness.</div>
+    </header>
+
+    <section class="diagram-frame" aria-label="Animated Intentwise operating model">
+      <div class="phase-row">
+        <div id="phase-banner" aria-live="polite">Loading the intent flow…</div>
+        <div class="controls" data-screen-only>
+          <button id="prev" type="button" aria-label="Previous phase">←</button>
+          <button id="pause" type="button" aria-label="Pause animation">Ⅱ</button>
+          <button id="next" type="button" aria-label="Next phase">→</button>
+        </div>
+      </div>
+
+      <div class="svg-scroll">
+        <svg class="arch-svg" viewBox="0 0 1600 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="diagram-title diagram-desc">
+          <title id="diagram-title">How Intentwise works and how it differs from orchestration</title>
+          <desc id="diagram-desc">A left-to-right flow from developer intent through repository inspection, a consequential decision frontier, autonomous implementation, and evidence. A lower comparison contrasts intent control with execution orchestration.</desc>
+          <defs>
+            <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,1 L9,5 L0,9" fill="var(--line-strong)"/>
+            </marker>
+          </defs>
+
+          <!--
+            LAYOUT GRID:
+            Spine row: y=128..390, common arrow y=265
+            Loop corridor: y=438..476
+            Comparison lane: y=535..715
+            Columns: Intent 20..175 | Discover 255..485 | Frontier 575..855 |
+                     Autonomy 945..1215 | Evidence 1305..1580
+            Every spine gap is 80-100px; return arrow stays below all spine boxes.
+          -->
+
+          <text x="20" y="95" class="group-title">THE FLOW — ONE THIN CONTROL LAYER</text>
+
+          <rect class="source-box" id="src-intent" x="20" y="210" width="155" height="110" rx="12"/>
+          <circle cx="55" cy="244" r="17" fill="var(--teal)"/>
+          <text x="55" y="249" class="circle-label">I</text>
+          <text x="82" y="246" class="component-name">Intent</text>
+          <text x="42" y="276" class="component-detail">Desired outcome</text>
+          <text x="42" y="295" class="component-detail">in human terms</text>
+
+          <text x="215" y="246" text-anchor="middle" class="flow-label">inspect first</text>
+          <path class="arrow-path" id="arr-1" d="M175,265 L255,265"/>
+
+          <rect class="group-box" id="grp-discover" x="255" y="170" width="230" height="190" rx="14"/>
+          <text x="278" y="200" class="group-title">REPOSITORY FIRST</text>
+          <rect class="inner-box" x="278" y="220" width="184" height="48" rx="8"/>
+          <text x="294" y="242" class="component-name">Code + tests</text>
+          <text x="294" y="258" class="component-detail">established behavior</text>
+          <rect class="inner-box" x="278" y="282" width="184" height="48" rx="8"/>
+          <text x="294" y="304" class="component-name">Config + docs</text>
+          <text x="294" y="320" class="component-detail">constraints already known</text>
+
+          <text x="530" y="246" text-anchor="middle" class="flow-label">derive implications</text>
+          <path class="arrow-path" id="arr-2" d="M485,265 L575,265"/>
+
+          <rect class="group-box hero" id="grp-frontier" x="575" y="128" width="280" height="274" rx="16"/>
+          <text x="600" y="160" class="group-title">CONSEQUENTIAL FRONTIER</text>
+          <text x="600" y="187" class="component-detail">Would alternatives change outcome, risk,</text>
+          <text x="600" y="204" class="component-detail">external behavior, or cost of reversal?</text>
+          <rect class="inner-box" x="600" y="225" width="230" height="54" rx="9"/>
+          <circle cx="621" cy="252" r="11" fill="var(--teal)"/>
+          <text x="621" y="256" class="circle-label" font-size="9">N</text>
+          <text x="642" y="248" class="component-name">No → delegate</text>
+          <text x="642" y="265" class="component-detail">zero questions for trivial work</text>
+          <rect class="inner-box amber" x="600" y="293" width="230" height="82" rx="9"/>
+          <circle cx="621" cy="320" r="11" fill="var(--amber)"/>
+          <text x="621" y="324" class="circle-label" font-size="9">Y</text>
+          <text x="642" y="316" class="component-name">Yes → ask once</text>
+          <text x="642" y="337" class="component-detail">options + recommendation</text>
+          <text x="642" y="354" class="component-detail">human chooses the consequence</text>
+
+          <text x="900" y="246" text-anchor="middle" class="flow-label">approved boundary</text>
+          <path class="arrow-path" id="arr-3" d="M855,265 L945,265"/>
+
+          <rect class="group-box" id="grp-autonomy" x="945" y="162" width="270" height="206" rx="14"/>
+          <text x="970" y="194" class="group-title">CONTRACT + AUTONOMY</text>
+          <rect class="inner-box amber" x="970" y="214" width="220" height="56" rx="8"/>
+          <text x="986" y="238" class="component-name">active/&lt;contract-id&gt;.md</text>
+          <text x="986" y="256" class="component-detail">outcomes, constraints, evidence</text>
+          <rect class="inner-box" x="970" y="286" width="220" height="55" rx="8"/>
+          <text x="986" y="309" class="component-name">Existing coding harness</text>
+          <text x="986" y="327" class="component-detail">owns decomposition and execution</text>
+
+          <text x="1260" y="246" text-anchor="middle" class="flow-label">independent proof</text>
+          <path class="arrow-path" id="arr-4" d="M1215,265 L1305,265"/>
+
+          <rect class="group-box" id="grp-evidence" x="1305" y="162" width="275" height="206" rx="14"/>
+          <text x="1330" y="194" class="group-title">CONTRACT-FIRST EVIDENCE</text>
+          <text x="1330" y="225" class="component-detail">Each acceptance criterion gets:</text>
+          <rect x="1330" y="242" width="66" height="31" rx="15" fill="var(--teal-soft)" stroke="var(--teal)"/>
+          <text x="1363" y="262" text-anchor="middle" class="component-detail" font-weight="700">PASS</text>
+          <rect x="1406" y="242" width="60" height="31" rx="15" fill="#f3ded9" stroke="var(--danger)"/>
+          <text x="1436" y="262" text-anchor="middle" class="component-detail" font-weight="700">FAIL</text>
+          <rect x="1476" y="242" width="82" height="31" rx="15" fill="var(--amber-soft)" stroke="var(--amber)"/>
+          <text x="1517" y="262" text-anchor="middle" class="component-detail" font-weight="700">UNPROVEN</text>
+          <text x="1330" y="303" class="component-name">L0 → L1 → L2 → L3</text>
+          <text x="1330" y="324" class="component-detail">claim · static · deterministic · behavioral</text>
+          <text x="1330" y="344" class="component-detail">Never lower the required level.</text>
+
+          <path class="arrow-path return" id="arr-escalate" d="M1080,368 L1080,458 L715,458 L715,402"/>
+          <text x="897" y="446" text-anchor="middle" class="flow-label">return only for a newly consequential choice</text>
+
+          <line x1="20" y1="505" x2="1580" y2="505" stroke="var(--line)" stroke-dasharray="2 8"/>
+          <text x="20" y="548" class="group-title">WHY THIS IS DIFFERENT</text>
+
+          <rect class="comparison-left" x="20" y="572" width="680" height="150" rx="16"/>
+          <text x="48" y="602" class="comparison-kicker">PLANNER / ORCHESTRATOR</text>
+          <text x="48" y="640" class="comparison-title">Controls execution</text>
+          <text x="48" y="668" class="comparison-copy">Defines tasks, agents, order, retries, queues, and handoffs.</text>
+          <text x="48" y="693" class="comparison-copy">The framework becomes the machinery that does the work.</text>
+          <text x="640" y="651" text-anchor="end" font-family="var(--font-display)" font-size="64" fill="var(--line-strong)">≠</text>
+
+          <rect class="comparison-right" x="760" y="572" width="820" height="150" rx="16"/>
+          <text x="790" y="602" class="comparison-kicker" fill="var(--teal)">INTENTWISE</text>
+          <text x="790" y="640" class="comparison-title">Controls consequences</text>
+          <text x="790" y="668" class="comparison-copy">Defines outcomes, consequential choices, constraints, and proof.</text>
+          <text x="790" y="693" class="comparison-copy">Your existing harness keeps maximum freedom over how the work gets done.</text>
+        </svg>
+      </div>
+
+      <div class="legend">
+        <span><strong>The contract is a boundary, not a recipe.</strong> Everything outside it stays delegated.</span>
+        <span class="mono">Intent → Implications → Decisions → Autonomy → Evidence</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const styles = getComputedStyle(document.documentElement);
+    const teal = styles.getPropertyValue('--teal').trim();
+    const amber = styles.getPropertyValue('--amber').trim();
+    const phases = [
+      {
+        label: '1 / INTENT — the developer states the observable outcome, not an implementation recipe.',
+        groups: [], sources: ['src-intent'], arrows: ['arr-1'], color: teal
+      },
+      {
+        label: '2 / DISCOVER — Intentwise reads code, tests, config, and docs before asking anything.',
+        groups: ['grp-discover'], sources: [], arrows: ['arr-1', 'arr-2'], color: teal
+      },
+      {
+        label: '3 / FRONTIER — trivial work gets zero questions; consequential choices get one recommendation-led question.',
+        groups: ['grp-frontier'], sources: [], arrows: ['arr-2'], color: amber
+      },
+      {
+        label: '4 / AUTONOMY — a compact contract fixes consequences; the existing harness owns implementation.',
+        groups: ['grp-autonomy'], sources: [], arrows: ['arr-3', 'arr-escalate'], color: amber
+      },
+      {
+        label: '5 / EVIDENCE — acceptance criteria are judged independently as PASS, FAIL, or UNPROVEN.',
+        groups: ['grp-evidence'], sources: [], arrows: ['arr-4'], color: teal
+      },
+      {
+        label: '6 / THE DIFFERENCE — Intentwise governs intent and proof; it never takes over execution topology.',
+        groups: ['grp-frontier', 'grp-autonomy', 'grp-evidence'], sources: ['src-intent'], arrows: ['arr-1', 'arr-2', 'arr-3', 'arr-4'], color: teal
+      }
+    ];
+
+    let phase = 0;
+    let timer;
+    let playing = true;
+
+    function resetSvg() {
+      document.querySelectorAll('.group-box, .source-box').forEach(el => {
+        el.classList.remove('lit');
+        el.style.removeProperty('--glow-color');
+      });
+      document.querySelectorAll('.arrow-path').forEach(el => {
+        el.classList.remove('lit');
+        el.style.removeProperty('--glow-color');
+        el.style.removeProperty('stroke');
+        el.style.removeProperty('stroke-width');
+      });
+    }
+
+    function applyPhase() {
+      const current = phases[phase];
+      const banner = document.getElementById('phase-banner');
+      banner.textContent = current.label;
+      banner.style.color = current.color;
+      banner.style.borderColor = current.color;
+      resetSvg();
+      [...(current.groups || []), ...(current.sources || []), ...(current.arrows || [])].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.setProperty('--glow-color', current.color);
+        el.classList.add('lit');
+      });
+    }
+
+    function stopPhases() {
+      clearInterval(timer);
+      timer = undefined;
+    }
+
+    function startPhases() {
+      stopPhases();
+      if (playing) timer = setInterval(() => {
+        phase = (phase + 1) % phases.length;
+        applyPhase();
+      }, 3200);
+    }
+
+    function movePhase(offset) {
+      phase = (phase + offset + phases.length) % phases.length;
+      applyPhase();
+      startPhases();
+    }
+
+    document.getElementById('prev').addEventListener('click', () => movePhase(-1));
+    document.getElementById('next').addEventListener('click', () => movePhase(1));
+    document.getElementById('pause').addEventListener('click', event => {
+      playing = !playing;
+      event.currentTarget.textContent = playing ? 'Ⅱ' : '▶';
+      event.currentTarget.setAttribute('aria-label', playing ? 'Pause animation' : 'Resume animation');
+      startPhases();
+    });
+
+    function applyCompositePhase() {
+      stopPhases();
+      resetSvg();
+      document.getElementById('phase-banner').textContent = 'Intentwise overview — all phases';
+      const ids = new Set();
+      phases.forEach(item => {
+        [...(item.groups || []), ...(item.sources || []), ...(item.arrows || [])].forEach(id => ids.add(id));
+      });
+      ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.setProperty('--glow-color', teal);
+        el.classList.add('lit');
+      });
+    }
+
+    window.addEventListener('beforeprint', applyCompositePhase);
+    window.addEventListener('afterprint', startPhases);
+    if (window.matchMedia && window.matchMedia('print').matches) applyCompositePhase();
+    else { applyPhase(); startPhases(); }
+  </script>
+</body>
+</html>
