@@ -1,150 +1,258 @@
-# Intentwise
+<p align="center">
+  <img src="docs/assets/intentwise-hero.png" alt="One intent signal crossing a decision boundary, branching into autonomous execution paths, and resolving into verified evidence" width="1200">
+</p>
 
-**Decide what matters. Delegate the rest.**
+<h1 align="center">Intentwise</h1>
 
-Intentwise is a small, harness-agnostic Agent Skill that helps a developer surface consequential software decisions, delegate everything else to the coding agent, and verify delivery against explicit evidence.
+<p align="center"><strong>Decide what matters. Delegate the rest.</strong></p>
 
-`Intent -> Implications -> Consequential Decisions -> Autonomy -> Evidence`
+<p align="center">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-22c55e.svg"></a>
+  <img alt="Python 3.10 or newer" src="https://img.shields.io/badge/Python-3.10%2B-3776ab.svg">
+  <img alt="Agent Skill" src="https://img.shields.io/badge/Agent-Skill-7c3aed.svg">
+</p>
 
-Intentwise is not a planner, orchestrator, workflow engine, model router, worktree manager, or replacement coding harness. A non-trivial task starts with one project-local Markdown contract. Verified work may also curate durable knowledge and explanatory assets, all contained under `.intentwise/`. One standard-library validator checks contract structure.
+Intentwise is a small, harness-agnostic Agent Skill for developers who want control over **intent and consequential decisions** without micromanaging an autonomous coding agent.
 
-## How it behaves
+It helps the agent determine what “correct” means before implementation, gives the native harness freedom inside that boundary, and verifies the result against explicit evidence afterward.
 
-- Inspects the repository before asking questions.
-- Uses repository evidence first, then authorized connected context such as MCP-accessible documentation and other repositories, then current primary external sources when they can materially improve a consequential decision.
-- Asks only about consequential outcomes and recommends a default.
-- Asks no questions for clear, low-consequence work.
-- Stores each non-trivial contract as a draft at `.intentwise/active/<contract-id>.md`, then stops for explicit user approval before implementation.
-- Supports concurrent sessions by keeping contracts separate and session-owned.
-- Leaves all choices outside the contract to the coding harness.
-- Escalates only when implementation reveals a new consequential decision.
-- Expresses advisory delivery-strategy expectations without prescribing implementation order.
-- Supports `COMPLETION`, `CHECKPOINTS`, and `OFF` learning modes; checkpoints teach without becoming approval gates.
-- Maps concrete, repository-derived maintainability expectations to acceptance evidence.
-- Shows an advisory anticipated file tree and records the actual change surface without making either an execution plan.
-- Records required and actually observed evidence levels, and verifies each acceptance criterion as `PASS`, `FAIL`, or `UNPROVEN` without allowing lower evidence to satisfy a higher requirement.
-- Remediates demonstrated failures inside the approved boundary, verifies again, and persists a compact delivery retrospective that teaches what changed, how it works, why meaningful choices were made, and which drawbacks remain.
-- Uses an [OKF-compatible](https://okf.md/spec/) Markdown envelope and promotes durable current knowledge under `.intentwise/knowledge/`; rich media remains separate under `.intentwise/assets/`.
+```text
+Intent → Implications → Consequential Decisions → Autonomy → Evidence
+```
 
-See [the principles](docs/principles.md), [contract template](skills/intentwise/references/contract-template.md), and [examples](examples/).
+> Control the boundary within which any implementation path is acceptable—not the path itself.
 
-## Install
+## Why Intentwise?
 
-The installable unit is the `skills/intentwise` directory. Copy or symlink that entire directory so its `SKILL.md`, `references/`, and `scripts/` stay together.
+Coding agents are increasingly good at planning and execution. The harder problem is making sure they build the right thing, surface the decisions you would care about, and prove the result without pulling you into every technical choice.
+
+| Concern | Intentwise response |
+| --- | --- |
+| The request is underspecified | Inspect the repository, derive implications, and ask only about consequential outcomes. |
+| Recommendations rely on model memory | Use repository evidence first, then authorized connected sources such as MCP-accessible documentation and other repositories, then current primary sources. |
+| The agent asks too many implementation questions | Delegate local, reversible, conventional, and mechanical choices. |
+| A plan becomes an execution bureaucracy | Preserve a compact delivery contract, not a task graph. |
+| Implementation drifts from the agreement | Stop only when new information crosses the consequential-decision frontier. |
+| “It works” is accepted without proof | Verify every criterion as `PASS`, `FAIL`, or `UNPROVEN` at an explicit evidence level. |
+| The developer loses track of the system | Finish with an explanatory retrospective and optionally teach at conceptual checkpoints. |
+
+Intentwise is **not** a planner, orchestrator, workflow engine, model router, task database, worktree manager, or replacement coding harness.
+
+## How it works
+
+```mermaid
+flowchart LR
+    R[Repository evidence] --> F[Decision frontier]
+    S[Connected and primary sources] --> F
+    F --> Q{Consequential ambiguity?}
+    Q -->|Yes| A[Question + recommendation]
+    A --> F
+    Q -->|No| C[Draft delivery contract]
+    C --> U[Human approval]
+    U --> H[Native coding harness]
+    H --> V[Contract-first verification]
+    V --> K[Retrospective + durable knowledge]
+    H -. New consequential decision .-> A
+```
+
+1. **Discover:** inspect code, tests, configuration, project instructions, and documentation before asking anything.
+2. **Research when it matters:** use available internal and current authoritative sources when they could materially change a consequential recommendation.
+3. **Find the decision frontier:** separate human-owned outcomes and trade-offs from delegated implementation choices.
+4. **Grill proportionally:** ask one consequence-focused question at a time, recommend the best fit, and stop at diminishing returns.
+5. **Contract:** write one compact `DRAFT` contract and wait for explicit approval.
+6. **Delegate:** let Codex, Claude Code, or Copilot choose its own implementation path.
+7. **Verify:** assess the agreed criteria independently against required and observed evidence.
+8. **Teach and preserve:** record what changed, how it works, meaningful autonomous decisions, drawbacks, residual risks, and durable system knowledge.
+
+Clear, low-consequence work collapses automatically: usually no interview and no contract.
+
+## Quick start
+
+Install the complete `skills/intentwise` directory into a location supported by your harness.
 
 ### Codex
-
-For one repository:
 
 ```sh
 mkdir -p .agents/skills
 cp -R /path/to/intentwise/skills/intentwise .agents/skills/intentwise
 ```
 
-For personal use across repositories, copy it to `~/.agents/skills/intentwise`. Codex discovers repository skills under `.agents/skills` from the current directory through the repository root and personal skills under `~/.agents/skills`. Invoke it explicitly with `$intentwise`, or let Codex select it from the description. Restart Codex if a new skill does not appear.
+Invoke it with:
 
-Official reference: [OpenAI — Build skills](https://developers.openai.com/codex/skills).
-
-### Claude Code
-
-For one repository:
-
-```sh
-mkdir -p .claude/skills
-cp -R /path/to/intentwise/skills/intentwise .claude/skills/intentwise
+```text
+$intentwise Add reliable webhook retries.
 ```
 
-For personal use, copy it to `~/.claude/skills/intentwise`. Claude Code automatically discovers custom skill directories containing `SKILL.md` in those locations.
-
-Official reference: [Anthropic — Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
+Codex also supports personal installation at `~/.agents/skills/intentwise`. See [OpenAI — Build skills](https://developers.openai.com/codex/skills).
 
 ### GitHub Copilot
-
-For a project skill, copy the directory to `.github/skills/intentwise` (Copilot also documents `.agents/skills` and `.claude/skills` as project locations). For a personal Copilot CLI skill, use `~/.copilot/skills/intentwise` or `~/.agents/skills/intentwise`.
 
 ```sh
 mkdir -p .github/skills
 cp -R /path/to/intentwise/skills/intentwise .github/skills/intentwise
 ```
 
-Copilot CLI can reload newly added skills with `/skills reload`, inspect them with `/skills info intentwise`, and invoke this one as `/intentwise`.
-
-Official references: [GitHub — Adding agent skills for Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills) and [Copilot CLI skill reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-command-reference#skills-reference).
-
-These locations and behaviors were checked against the linked official documentation on August 20, 2026. Product support can change; consult the links when packaging for another surface.
-
-## Use
-
-For a non-trivial request, ask the harness to use Intentwise while describing the desired outcome:
+Reload and inspect it in Copilot CLI:
 
 ```text
-Use Intentwise to add reliable webhook retries, then implement and verify the approved contract.
+/skills reload
+/skills info intentwise
 ```
 
-Intentwise first uses repository evidence. For consequential decisions whose answer depends on current or organizational knowledge, it then consults authorized connected sources such as MCP-accessible documentation and other repositories, followed by authoritative primary external sources when available. It records the evidence basis, sources, and applicability instead of presenting model memory as research. If consequential ambiguity remains, it asks one consequence-focused question at a time with a best-fit recommendation. It writes a `DRAFT` contract and stops; only explicit user acceptance makes that contract `APPROVED`. After approval, the coding harness implements autonomously and records the actual change surface and evidence in its selected `.intentwise/active/<contract-id>.md`. Delivery-strategy expectations and the forecasted file tree may influence evidence but never prescribe implementation order. Learning checkpoints, when enabled, teach through non-blocking conceptual updates rather than approval gates. Demonstrated failures return to implementation and verification; unavailable evidence remains `UNPROVEN`. Before `VERIFIED`, the contract gains a durable delivery retrospective and records any current knowledge or explanatory assets promoted under `.intentwise/`. A fully passing, structurally valid contract then moves to `.intentwise/completed/` with the same filename as immutable provenance; it is not closed while still active.
+Then use:
 
-### Concurrent tasks
+```text
+Use the /intentwise skill to add reliable webhook retries.
+```
 
-Each task gets a separate file:
+Copilot also recognizes `.agents/skills` and `.claude/skills` as repository skill locations, and `~/.copilot/skills` or `~/.agents/skills` for personal skills. See [GitHub — Adding agent skills for Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills).
+
+### Claude Code
+
+```sh
+mkdir -p .claude/skills
+cp -R /path/to/intentwise/skills/intentwise .claude/skills/intentwise
+```
+
+Invoke Intentwise by name in your request. Claude Code also supports personal skills at `~/.claude/skills/intentwise`. See [Anthropic — Agent Skills](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview).
+
+The paths above were checked against the linked official documentation on August 21, 2026. Product support can change; consult the source for another surface or version.
+
+## The approval boundary
+
+For non-trivial work, Intentwise creates a contract under `.intentwise/active/` and stops. It never treats drafting the contract as permission to implement it.
+
+```markdown
+### D001 — Delivery guarantee
+
+Choice: Use at-least-once delivery with a stable event identifier.
+
+Rationale: Avoids silent loss while giving receivers a deduplication key.
+
+Evidence basis: Existing webhook behavior plus HTTP standards.
+
+Sources: Repository delivery tests; RFC 9110.
+
+Applicability: Preserves the existing public payload contract.
+
+### AC01 — Recover transient failure
+
+Expected: A delivery that first returns 503 and later returns 200 is retried with the same event identifier.
+
+Required evidence: L3
+Observed evidence: NONE
+Result: UNPROVEN
+Evidence: Not yet collected.
+```
+
+After reviewing the full contract, approve it explicitly:
+
+```text
+Approved. Implement it.
+```
+
+Everything not constrained by the approved intent, decisions, acceptance criteria, and evidence requirements remains delegated to the coding harness.
+
+## Evidence, not confidence
+
+Every acceptance criterion names a minimum evidence level:
+
+| Level | Meaning | Can justify `PASS`? |
+| --- | --- | --- |
+| `L0` | A person or agent claims it works | No |
+| `L1` | Static code, configuration, or documentation evidence | Yes, when L1 is required |
+| `L2` | Deterministic test, type check, schema, linter, or assertion | Yes, when L2 or lower is required |
+| `L3` | The actual scenario is executed and its observable result verified | Yes, when it addresses the criterion |
+
+Intentwise never silently lowers the requirement:
+
+- `PASS` — sufficient evidence at or above the required level.
+- `FAIL` — evidence demonstrates a discrepancy.
+- `UNPROVEN` — the behavior may exist, but adequate evidence was not obtained.
+
+The included validator checks the contract’s internal structure and evidence-level consistency. It deliberately does **not** claim to prove product behavior.
+
+```sh
+python3 skills/intentwise/scripts/validate_contract.py \
+  .intentwise/active/IW-142-webhook-retries.md
+```
+
+## Learning without approval theater
+
+Intentwise supports three learning modes:
+
+- `COMPLETION` — teach through the final delivery retrospective.
+- `CHECKPOINTS` — add concise, non-blocking explanations, diagrams, and optional comprehension questions at meaningful conceptual boundaries.
+- `OFF` — omit educational commentary while retaining the factual retrospective.
+
+Learning changes the timing of explanation, not the agent’s authority. A checkpoint is not an approval gate.
+
+## Project-local memory
+
+Everything generated by Intentwise stays under `.intentwise/`:
 
 ```text
 .intentwise/
 ├── index.md
-├── active/
-│   ├── IW-142-webhook-retries.md
-│   └── 20260820-194530-telemetry-privacy-a3f91c.md
-├── completed/
-├── knowledge/
-│   ├── index.md
+├── active/                 # one session-owned contract per task
+├── completed/              # immutable verified delivery records
+├── knowledge/              # mutable current system knowledge
 │   ├── architecture/
 │   ├── decisions/
 │   ├── external/
 │   └── operations/
-└── assets/
+└── assets/                 # explanatory media, separate from knowledge
     ├── diagrams/
     ├── images/
     └── visualizations/
 ```
 
-Prefer an issue or task ID plus a short slug. Without one, use a UTC timestamp, short slug, and six-character random suffix. A session updates only the contract it created or was explicitly asked to resume; it must never overwrite or close another active contract. Active contracts are isolated; shared knowledge remains convention-based concurrency rather than a locking system. Shared indexes must not become active-task registries. Before updating canonical knowledge, re-read and reconcile the target, stopping on an unsafe conflict rather than overwriting it.
+Active contracts are isolated for concurrent sessions. Shared knowledge uses optimistic, convention-based reconciliation rather than locks or an orchestration service.
 
-See the [complete golden delivery](examples/golden-delivery/.intentwise/completed/IW-204-evidence-integrity.md) for a verified contract linked to durable knowledge and a separate explanatory asset.
+Persistent Markdown uses an [OKF-compatible](https://okf.md/spec/) typed frontmatter envelope. Completed contracts remain immutable provenance; knowledge documents describe what is currently true.
 
-Run the structural validator from this repository or an installed skill:
+Explore the [complete golden delivery](examples/golden-delivery/.intentwise/completed/IW-204-evidence-integrity.md), including its [durable architecture knowledge](examples/golden-delivery/.intentwise/knowledge/architecture/intentwise-evidence-validation.md) and separate [evidence-flow asset](examples/golden-delivery/.intentwise/assets/diagrams/evidence-flow.svg).
 
-```sh
-python3 skills/intentwise/scripts/validate_contract.py .intentwise/active/IW-142-webhook-retries.md
-```
+## Design principles
 
-Exit code `0` means the OKF envelope and Intentwise Markdown structure are valid, `1` means the contract is structurally invalid, and `2` means the file could not be read. Structural validity never proves implementation, maintainability, or runtime behavior.
+- **Repository-first:** never ask the developer what the codebase can establish.
+- **Consequence-first:** uncertainty alone does not earn a question.
+- **Evidence-backed:** recommendations expose their sources and applicability.
+- **Adaptive depth:** decision density, not task size, controls the ceremony.
+- **Native autonomy:** execution topology and implementation order belong to the harness.
+- **Contract-first verification:** compare evidence with the agreement, not implementation claims.
+- **Durable learning:** preserve current system knowledge without turning contracts into a documentation dump.
 
-## Develop
+Read the full [design principles](docs/principles.md), [contract template](skills/intentwise/references/contract-template.md), and [worked examples](examples/).
 
-There are no runtime dependencies beyond Python 3.10+ for the optional validator. Run the tests with:
+## Development
+
+Intentwise has no runtime dependencies. The optional structural validator requires Python 3.10 or newer and uses only the standard library.
 
 ```sh
 python3 -m unittest discover -s tests -v
-```
 
-Validate the included contracts directly:
-
-```sh
 python3 skills/intentwise/scripts/validate_contract.py tests/fixtures/valid.md
-python3 skills/intentwise/scripts/validate_contract.py tests/fixtures/invalid.md
 python3 skills/intentwise/scripts/validate_contract.py examples/webhook-retries.md
 python3 skills/intentwise/scripts/validate_contract.py examples/foundry-telemetry.md
 ```
 
-The invalid fixture is expected to exit with code `1`.
+The invalid fixture is expected to exit with code `1`:
+
+```sh
+python3 skills/intentwise/scripts/validate_contract.py tests/fixtures/invalid.md
+```
 
 ## Repository layout
 
 ```text
 skills/intentwise/
-  SKILL.md
-  references/
-  scripts/validate_contract.py
-docs/principles.md
+├── SKILL.md
+├── references/
+└── scripts/validate_contract.py
+docs/
+├── assets/intentwise-hero.png
+└── principles.md
 examples/
 tests/
 LICENSE
