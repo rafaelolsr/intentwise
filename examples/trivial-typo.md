@@ -10,7 +10,7 @@ The message appears once, its expected spelling is covered by a snapshot, and no
 
 ## Intentwise response
 
-No consequential decision exists. Fix the text, update the snapshot if needed, run the focused test, and report the evidence. Do not create an `.intentwise/active/` contract and do not ask a question.
+No consequential decision exists. Fix the text, update the snapshot if needed, run the focused test, and report the evidence. Do not create an Intentwise lifecycle contract and do not ask a question.
 
 ## Verification
 

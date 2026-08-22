@@ -1,5 +1,6 @@
 ---
 type: Intentwise Delivery Contract
+schema: intentwise/v0.2
 title: Reliable webhook retries
 description: Recover transient webhook failures without hiding permanent delivery errors.
 tags: [intentwise, webhooks, reliability]
@@ -68,6 +69,10 @@ Applicability: Extending the existing failed-delivery record avoids introducing 
 ## Learning Mode
 
 Mode: COMPLETION
+
+## Execution
+
+Disposition: DEFERRED
 
 ## Maintainability Expectations
 

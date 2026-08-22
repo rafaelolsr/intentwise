@@ -1,5 +1,6 @@
 ---
 type: Intentwise Delivery Contract
+schema: intentwise/v0.2
 title: Foundry agent telemetry
 description: Add correlated, privacy-safe telemetry for Foundry agents.
 tags: [intentwise, telemetry, observability]
@@ -70,6 +71,10 @@ Applicability: Stable attributes fit the existing exporter and make repository-s
 ## Learning Mode
 
 Mode: CHECKPOINTS
+
+## Execution
+
+Disposition: DEFERRED
 
 ## Maintainability Expectations
 

@@ -1,5 +1,6 @@
 ---
 type: Intentwise Delivery Contract
+schema: intentwise/v0.2
 title: <short task title>
 description: <one-sentence intended outcome>
 tags: [intentwise, delivery]
@@ -47,6 +48,12 @@ Advisory outcome-level guidance only; implementation order remains delegated.
 Mode: COMPLETION
 
 Use `COMPLETION`, `CHECKPOINTS`, or `OFF`.
+
+## Execution
+
+Disposition: CONTINUE
+
+Use `CONTINUE` when approval should start implementation immediately. Use `DEFERRED` when approval should make the contract build-ready under `.intentwise/ready/` and stop.
 
 ## Maintainability Expectations
 
@@ -130,13 +137,13 @@ Complete before setting `Status: VERIFIED`.
 
 ## Lifecycle
 
-Keep each current contract at `.intentwise/active/<contract-id>.md` and use one status value. Prefer `<issue-or-task-id>-<short-slug>.md` when an external ID exists. Otherwise use `<UTC-YYYYMMDD-HHMMSS>-<short-slug>-<six-random-hex>.md`. Never overwrite an existing file.
+Use the same `<contract-id>.md` filename through every lifecycle directory. Prefer `<issue-or-task-id>-<short-slug>.md` when an external ID exists. Otherwise use `<UTC-YYYYMMDD-HHMMSS>-<short-slug>-<six-random-hex>.md`. Never overwrite an existing file.
 
-- `DRAFT` while consequential decisions remain open.
-- `APPROVED` only after the user has explicitly accepted the outcome, decisions, constraints, criteria, and evidence requirements. The drafting agent may record that acceptance but must not self-approve.
-- `IMPLEMENTED` when implementation is complete but verification is not.
-- `VERIFIED` only when every acceptance criterion is `PASS` at its required evidence level and the actual change surface, delivery retrospective, and knowledge-promotion record are complete.
+- `.intentwise/drafts/` + `DRAFT` while consequential decisions or approval remain open.
+- `.intentwise/ready/` + `APPROVED` when the user accepted the contract with `Disposition: DEFERRED` and implementation has not started.
+- `.intentwise/active/` + `APPROVED` while implementation is underway, then `IMPLEMENTED` when implementation is complete but verification is not.
+- `.intentwise/completed/` + `VERIFIED` only when every acceptance criterion is `PASS` at its required evidence level and the actual change surface, delivery retrospective, and knowledge-promotion record are complete.
 
-Each session owns only the contract it created or was explicitly asked to resume. Do not edit, validate as part of the current task, or close other active contracts.
+Each session owns only the contract it created or was explicitly asked to resume. Do not edit, validate as part of the current task, move, or close other contracts.
 
-After every criterion passes and the completed record validates, set `VERIFIED` and move the same filename to `.intentwise/completed/<contract-id>.md`. A successful delivery is not closed while its verified contract remains under `active/`. Keep a failed or unproven contract active unless the user explicitly closes it. A legacy `.intentwise/active.md` may be resumed when explicitly identified, but new contracts must use the concurrent-safe directory convention.
+After every criterion passes and the completed record validates, set `VERIFIED` and move the same filename from `active/` to `.intentwise/completed/<contract-id>.md`. Keep a failed or unproven contract active unless the user explicitly closes it. Existing contracts under `.intentwise/active/` and a legacy `.intentwise/active.md` may be resumed in place when explicitly identified; never migrate them automatically.
