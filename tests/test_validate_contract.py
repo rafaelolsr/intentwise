@@ -181,6 +181,31 @@ All criteria pass.
             validate(text).errors,
         )
 
+    def test_current_schema_requires_execution_disposition(self) -> None:
+        text = self.fixture("valid.md").replace(
+            "\n## Execution\n\nDisposition: CONTINUE\n",
+            "",
+        )
+        self.assertIn("missing required section(s): Execution", validate(text).errors)
+
+    def test_execution_disposition_must_be_known(self) -> None:
+        text = self.fixture("valid.md").replace(
+            "Disposition: CONTINUE",
+            "Disposition: SOMEDAY",
+        )
+        self.assertIn(
+            "Execution must contain 'Disposition: CONTINUE' or 'Disposition: DEFERRED'",
+            validate(text).errors,
+        )
+
+    def test_legacy_contract_without_schema_or_execution_remains_valid(self) -> None:
+        text = (
+            self.fixture("valid.md")
+            .replace("schema: intentwise/v0.2\n", "")
+            .replace("\n## Execution\n\nDisposition: CONTINUE\n", "")
+        )
+        self.assertTrue(validate(text).valid)
+
     def test_pass_requires_concrete_evidence(self) -> None:
         text = (
             self.fixture("valid.md")

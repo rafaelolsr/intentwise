@@ -16,7 +16,9 @@ LEVELS = {"L1", "L2", "L3"}
 OBSERVED_LEVELS = {"NONE", *LEVELS}
 LEVEL_RANK = {"L1": 1, "L2": 2, "L3": 3}
 LEARNING_MODES = {"COMPLETION", "CHECKPOINTS", "OFF"}
+EXECUTION_DISPOSITIONS = {"CONTINUE", "DEFERRED"}
 CONTRACT_TYPE = "Intentwise Delivery Contract"
+CURRENT_SCHEMA = "intentwise/v0.2"
 REQUIRED_SECTIONS = (
     "Intent",
     "Outcome",
@@ -113,6 +115,7 @@ def _blocks(section: str, pattern: re.Pattern[str]) -> list[tuple[re.Match[str],
 
 def validate(text: str) -> ValidationResult:
     errors: list[str] = []
+    schema: str | None = None
     frontmatter_match = FRONTMATTER_RE.match(text)
     if not frontmatter_match:
         errors.append("contract must begin with OKF-compatible YAML frontmatter")
@@ -120,6 +123,9 @@ def validate(text: str) -> ValidationResult:
         contract_type = _frontmatter_field(frontmatter_match.group(1), "type")
         if contract_type != CONTRACT_TYPE:
             errors.append(f"frontmatter type must be '{CONTRACT_TYPE}'")
+        schema = _frontmatter_field(frontmatter_match.group(1), "schema")
+        if schema is not None and schema != CURRENT_SCHEMA:
+            errors.append(f"frontmatter schema must be '{CURRENT_SCHEMA}' when present")
 
     status_matches = STATUS_RE.findall(text)
     status = status_matches[0] if len(status_matches) == 1 else None
@@ -129,10 +135,11 @@ def validate(text: str) -> ValidationResult:
         errors.append(f"invalid status '{status}'; expected one of {', '.join(sorted(STATUSES))}")
 
     sections = _sections(text)
-    missing = [name for name in REQUIRED_SECTIONS if name not in sections]
+    required_sections = REQUIRED_SECTIONS + (("Execution",) if schema == CURRENT_SCHEMA else ())
+    missing = [name for name in required_sections if name not in sections]
     if missing:
         errors.append("missing required section(s): " + ", ".join(missing))
-    for name in REQUIRED_SECTIONS:
+    for name in required_sections:
         if name in sections and not sections[name]:
             errors.append(f"section '{name}' must not be empty")
 
@@ -141,6 +148,11 @@ def validate(text: str) -> ValidationResult:
         errors.append(
             "Learning Mode must contain 'Mode: COMPLETION', 'Mode: CHECKPOINTS', or 'Mode: OFF'"
         )
+
+    if "Execution" in sections:
+        disposition = _field(sections["Execution"], "Disposition")
+        if disposition not in EXECUTION_DISPOSITIONS:
+            errors.append("Execution must contain 'Disposition: CONTINUE' or 'Disposition: DEFERRED'")
 
     decisions = _blocks(sections.get("Consequential Decisions", ""), DECISION_RE)
     decision_ids = [match.group(1) for match, _ in decisions]

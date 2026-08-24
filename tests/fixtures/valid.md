@@ -1,5 +1,6 @@
 ---
 type: Intentwise Delivery Contract
+schema: intentwise/v0.2
 title: Diagnostic event retention
 description: Retain recent diagnostic events without storing payload bodies.
 tags: [intentwise, delivery]
@@ -43,6 +44,10 @@ Applicability: The existing event-store boundary already owns retention and payl
 ## Learning Mode
 
 Mode: COMPLETION
+
+## Execution
+
+Disposition: CONTINUE
 
 ## Maintainability Expectations
 

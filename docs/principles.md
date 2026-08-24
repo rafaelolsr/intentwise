@@ -16,6 +16,8 @@ External guidance does not automatically override a system's existing architectu
 
 The approved contract is the boundary. The human controls intent, consequential decisions, constraints, acceptance criteria, and evidence requirements. The skill must present a draft and stop; only explicit user acceptance can approve it. Everything else belongs to the coding harness. Advisory strategy expectations may favor early end-to-end evidence, but execution order remains delegated. During implementation, discovery warrants escalation only when it introduces a consequential choice outside that boundary—not merely when the work becomes difficult, the implementation strategy changes, or an anticipated file tree evolves.
 
+Approval and execution are distinct. A deferred approved contract is build-ready under `.intentwise/ready/` but grants no current implementation action. Only an explicit start moves it to `active/`. This lifecycle distinction records readiness without scheduling, prioritizing, or managing a backlog.
+
 ## Maintainability without ceremony
 
 Maintainability expectations must name concrete repository boundaries, compatibility properties, duplication risks, tests, or documentation obligations and map them to acceptance evidence. Intentwise does not pretend that long-term ease of change has an immediate deterministic oracle. Unverifiable concerns remain explicit residual risks rather than vague claims of quality.
