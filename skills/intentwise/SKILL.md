@@ -7,6 +7,8 @@ description: Preserve developer control over consequential software decisions wh
 
 Preserve this sequence: **Intent -> Implications -> Consequential Decisions -> Autonomy -> Evidence**. This is intent and verification control, not planning or orchestration.
 
+Whenever presenting an Intentwise-created file to the user, resolve and show its absolute filesystem path. When the interface supports Markdown file links, make the path clickable. Keep paths stored inside contracts and knowledge documents relative for portability.
+
 ## Shape the contract
 
 1. Inspect the repository's code, tests, configuration, documentation, and instructions before asking anything. Infer what those sources already establish. When an unresolved consequential decision depends on current platform behavior, domain practice, organizational precedent, or an unfamiliar integration, use available connected sources and authoritative primary sources following [evidence-backed discovery](references/questioning.md#evidence-backed-discovery); do not present model memory as researched fact or turn ordinary implementation choices into a market survey.
