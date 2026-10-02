@@ -1,6 +1,6 @@
 ---
 type: Intentwise Delivery Contract
-schema: intentwise/v0.2
+schema: intentwise/v0.4
 title: Foundry agent telemetry
 description: Add correlated, privacy-safe telemetry for Foundry agents.
 tags: [intentwise, telemetry, observability]
@@ -18,6 +18,42 @@ Add production-grade telemetry for Foundry agents in Application Insights.
 ## Outcome
 
 A production operator can reconstruct a complete multi-agent execution, attribute latency, cost, and errors to the responsible operation, and do so without storing prompt or response content.
+
+## Target Experience
+
+```mermaid
+flowchart LR
+    R[Originating request] --> T[One distributed trace]
+    T --> A[Agent spans]
+    A --> M[Model spans]
+    A --> O[Tool spans]
+    M --> I[Application Insights]
+    O --> I
+    A --> I
+    I --> P[Operator reconstructs execution]
+```
+
+The operator starts from one request and sees its agent, model, and tool work as one correlated trace. Production shows operational attributes but never prompt or response bodies.
+
+## Interaction States
+
+| Trigger or state | Observable result | Persistent meaning or evidence |
+| --- | --- | --- |
+| A production request executes delegated work | One trace shows parent-child operation order | Stable attributes support latency, cost, and status queries |
+| A tool fails | Its span records failure and a normalized error category | The responsible operation remains attributable |
+| Content capture is explicitly enabled in sandbox or development | Prompt and response capture becomes available there | Production capture remains prohibited and every environment defaults to off |
+
+## Experience Rules
+
+- One originating request maps to one distributed trace.
+- Agent, model, and tool operations remain independently attributable.
+- Production telemetry never stores prompt or response bodies.
+- Content capture outside production is explicit and disabled by default.
+- Correlation uses the existing telemetry export path rather than a new orchestration layer.
+
+## Success Scenario
+
+A production request delegates agent, model, and tool work and one tool fails. An operator opens the trace in Application Insights, follows the execution order, identifies the failed tool through its normalized category, attributes latency and token usage to the responsible operations, and finds no prompt or response content.
 
 ## Consequential Decisions
 
@@ -89,6 +125,8 @@ Expected: A multi-agent request appears as one trace whose spans reveal agent, m
 
 Required evidence: L3
 
+Planned verification: Execute an instrumented request that delegates agent, model, and tool work, query the exported trace, and assert one trace with the expected parent-child execution order.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -100,6 +138,8 @@ Evidence: Not yet collected.
 Expected: Agent spans expose agent name, conversation identifier, duration, and status; model spans expose model, input and output tokens, latency, and status.
 
 Required evidence: L3
+
+Planned verification: Execute a known agent and model interaction, query the emitted spans, and assert the required identity, correlation, duration, token, latency, and status attributes.
 
 Observed evidence: NONE
 
@@ -113,6 +153,8 @@ Expected: Tool spans expose tool name, duration, and status, and failures use a 
 
 Required evidence: L3
 
+Planned verification: Force a known tool failure, query its exported span, and assert tool identity, duration, failure status, and the expected normalized error category without relying on message parsing.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -125,6 +167,8 @@ Expected: Production telemetry contains no prompt or response payload content; s
 
 Required evidence: L2
 
+Planned verification: Run deterministic telemetry serialization and environment-configuration tests that assert production omits content and every environment defaults capture to disabled while sandbox and development can opt in.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -136,6 +180,8 @@ Evidence: Not yet collected.
 Expected: Stable attribute definitions have one authoritative implementation, existing export configuration remains the integration boundary, and deterministic schema tests cover agent, model, and tool attributes.
 
 Required evidence: L2
+
+Planned verification: Run the authoritative attribute-schema tests and export-configuration tests, and assert that agent, model, and tool instrumentation consume that schema through the existing exporter boundary.
 
 Observed evidence: NONE
 

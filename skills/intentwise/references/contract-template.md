@@ -1,6 +1,6 @@
 ---
 type: Intentwise Delivery Contract
-schema: intentwise/v0.2
+schema: intentwise/v0.4
 title: <short task title>
 description: <one-sentence intended outcome>
 tags: [intentwise, delivery]
@@ -19,6 +19,32 @@ Status: DRAFT
 
 <observable state that must become true>
 
+## Target Experience
+
+Show the final state in the smallest visual form that materially improves understanding. Prefer Mermaid when supported or a fenced `text` diagram otherwise. Use a user journey, data/control flow, state transition, or before/after mapping as the task requires. Show the default state first, label important incomplete or uncertain paths explicitly, and omit implementation sequencing.
+
+```text
+<starting state> -> <observable behavior> -> <expected result>
+```
+
+<one concise explanation of what the user or operator sees by default and what is in scope>
+
+## Interaction States
+
+Use actions for interactive work and events or conditions for system behavior. Include only states that materially distinguish the expected result.
+
+| Trigger or state | Observable result | Persistent meaning or evidence |
+| --- | --- | --- |
+| <action, event, or condition> | <what changes or becomes visible> | <what remains true or inspectable> |
+
+## Experience Rules
+
+- <externally visible behavior or invariant that must remain true>
+
+## Success Scenario
+
+<one representative end-to-end scenario from the starting condition through the important action or system flow to the observable result; include a degraded or incomplete-evidence case when it is central to the task>
+
 ## Consequential Decisions
 
 ### D001 — <decision>
@@ -29,7 +55,7 @@ Rationale: <why this choice best supports the intent>
 
 Evidence basis: <repository, connected organizational, current primary-source, or explicitly disclosed model basis>
 
-Sources: <verifiable repository paths, connected records, or authoritative URLs>
+Sources: <precise project-relative paths and symbols/tests, stable connected record IDs, user-supplied task identifiers, or authoritative URLs; never “repository” alone>
 
 Applicability: <why this evidence fits the current system and constraints>
 
@@ -61,11 +87,17 @@ Use `CONTINUE` when approval should start implementation immediately. Use `DEFER
 
 ## Acceptance Criteria
 
+Write acceptance criteria only after completing the temporary source-derived semantic readiness worksheet from the draft preflight. Preserve every material source commitment in a criterion clause, including conditions, exceptions, and protected compatibility properties. Group clauses for readability without replacing them with broad labels; each clause needs a corresponding verification assertion. Sources locate authority and do not implicitly import omitted requirements. Each `Planned verification` must identify a concrete scenario or artifact, the action or check, and the observable assertions that can reach the required evidence level. It must not depend on “if available,” “when data is available,” or similar escape clauses. It is a verification plan, not evidence already obtained.
+
 ### AC01 — <criterion>
 
 Expected: <observable behavior>
 
+Sources: <precise authority locators for the normative commitments covered by this criterion>
+
 Required evidence: L1 | L2 | L3
+
+Planned verification: <specific scenario or artifact, check to run, and observable assertions>
 
 Observed evidence: NONE | L1 | L2 | L3
 

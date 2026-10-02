@@ -1,6 +1,6 @@
 ---
 type: Intentwise Delivery Contract
-schema: intentwise/v0.2
+schema: intentwise/v0.4
 title: Reliable webhook retries
 description: Recover transient webhook failures without hiding permanent delivery errors.
 tags: [intentwise, webhooks, reliability]
@@ -18,6 +18,39 @@ Retry failed outbound webhooks so transient receiver failures do not lose custom
 ## Outcome
 
 Transient delivery failures recover automatically while receivers can safely recognize duplicate attempts and operators can diagnose final failures.
+
+## Target Experience
+
+```mermaid
+flowchart LR
+    E[Outbound event] --> A[Attempt with stable event ID]
+    A -->|Transient failure| R[Retry within 24 hours]
+    R --> A
+    A -->|Success| D[Delivered]
+    A -->|Permanent or exhausted| F[Operator-visible failure]
+    F --> M[Manual replay]
+```
+
+Delivery begins with one stable event identity. Recoverable failures loop through bounded retries; permanent or exhausted failures remain visible and replayable.
+
+## Interaction States
+
+| Trigger or state | Observable result | Persistent meaning or evidence |
+| --- | --- | --- |
+| Receiver returns 503, then 200 | Delivery retries and finishes as delivered | Every attempt carries the same event identifier |
+| Receiver returns 400 | Delivery stops after one attempt | The permanent failure remains diagnosable |
+| Retry window expires | Delivery becomes operator-visible as failed | Manual replay remains available |
+
+## Experience Rules
+
+- Every attempt for one event uses the same public event identifier.
+- Retryable and permanent failures are identifiable without inspecting free-form logs.
+- Final failure is visible and manually recoverable.
+- Logs and failure records expose neither signing secrets nor full payloads.
+
+## Success Scenario
+
+A receiver first returns 503 and later returns 200. The delivery flow retries within the approved window, preserves the event identifier across attempts, records the delivery as successful, and exposes no secret or full payload in operational records.
 
 ## Consequential Decisions
 
@@ -87,6 +120,8 @@ Expected: A webhook that first returns 503 and later returns 200 is retried and 
 
 Required evidence: L3
 
+Planned verification: Exercise a receiver fixture that returns 503 and then 200, and assert multiple attempts, one stable event identifier, and a final delivered record.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -98,6 +133,8 @@ Evidence: Not yet collected.
 Expected: A webhook returning 400 is attempted once and recorded as failed without an automatic retry.
 
 Required evidence: L3
+
+Planned verification: Exercise a receiver fixture that returns 400 and assert exactly one attempt, no scheduled retry, and a final failed record.
 
 Observed evidence: NONE
 
@@ -111,6 +148,8 @@ Expected: Retry logs and failed-delivery records contain neither signing secrets
 
 Required evidence: L2
 
+Planned verification: Run deterministic delivery and persistence tests with signing secrets and payload bodies in the input, capture logs and failed records, and assert that neither sensitive value is present.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -123,6 +162,8 @@ Expected: One authoritative classification determines retryable and permanent fa
 
 Required evidence: L2
 
+Planned verification: Run table-driven classification tests covering timeouts, connection failures, HTTP 429, every HTTP 5xx class, and non-retryable HTTP 4xx responses against one authoritative classifier.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -134,6 +175,8 @@ Evidence: Not yet collected.
 Expected: The webhook payload schema is unchanged and every retry attempt carries the same stable event identifier.
 
 Required evidence: L2
+
+Planned verification: Run payload-schema compatibility tests and a multi-attempt delivery test that asserts the public schema is unchanged and the event identifier remains stable.
 
 Observed evidence: NONE
 

@@ -8,9 +8,29 @@ The frontier separates choices a developer should see from choices a coding agen
 
 ## Evidence-backed discovery
 
-Consequential recommendations should not rely on model memory when available repository, organizational, or current primary evidence could materially change them. Intentwise starts with repository truth, then uses authorized connected context such as MCP-accessible documentation and other repositories, then current official documentation, standards, specifications, or primary research. Model knowledge is a disclosed fallback, never evidence of current market practice.
+Consequential recommendations should not rely on model memory when available product authority, repository evidence, organizational context, or current primary evidence could materially change them. Intentwise starts with explicit requirements and approved or verified decisions, then uses repository implementation evidence, authorized connected context such as MCP-accessible documentation and other repositories, and current official documentation, standards, specifications, or primary research. Model knowledge is a disclosed fallback, never evidence of current market practice.
 
 External guidance does not automatically override a system's existing architecture. Every recorded decision states its evidence basis, sources, and why that evidence applies to the repository and constraints. Research stops when further information is unlikely to change the consequential recommendation; ordinary delegated implementation choices do not receive a mandatory research ceremony.
+
+Discovery preserves a proof core: the authoritative request, relevant current path, observable gap, confirmed participating scope, proof target, and material contradictions or unknowns. It stops at evidence saturation rather than an arbitrary source or time limit. Broader architecture, related-item history, migration, rollout, and adjacent components are inspected only when evidence reveals a material dependency, shared contract, cross-boundary behavior, security or data consequence, compatibility concern, conflicting authority, or important failure semantics. Possible scope never becomes required scope merely because it was discovered.
+
+## Source authority and progress
+
+Intentwise separates product authority from implementation evidence. Explicit current requirements, current issue or task acceptance text, approved or verified contracts, and explicit organizational decisions constrain what the product should do. Code, tests, logs, and runtime behavior establish what currently exists and where regressions may be, but do not authorize a different outcome by themselves. An explicit current authoritative statement may supersede an older decision only when it intentionally addresses the same behavior; recency or changed code alone is insufficient.
+
+Before drafting or reviewing, the agent searches overlapping `.intentwise/ready/`, `.intentwise/active/`, and `.intentwise/completed/` records by task ID and affected behavior. A defect with a source-established correction is repaired during authoring or returned as `NEEDS REVISION` during review. Local, reversible, or conventional uncertainty remains delegated or explicitly unknown. `BLOCKED` is reserved for a high-consequence outcome that no authority resolves and that would be risky or costly to default, or context required to determine what should be built. Missing verification evidence later produces `UNPROVEN`, not a drafting blocker.
+
+## Observable target experience
+
+An outcome explains what must become true; the target experience makes that state inspectable before approval. A contract uses the smallest useful diagram, state table, or before/after mapping to show the default flow, material interactions, externally visible invariants, and one representative success scenario. Interactive product work may show user actions, while services and infrastructure may show events, conditions, data flow, or control flow. Missing and uncertain paths remain explicit. These views constrain observable meaning, not implementation sequence, task decomposition, or internal topology.
+
+## Approval-ready drafts
+
+Structural validity is necessary but cannot establish that a draft is safe to approve. Before acceptance criteria are written, the authoring agent derives a temporary semantic view from authoritative sources: applicable operational definitions, input and failure states, classification and reconciliation invariants, missing and unknown behavior, observed baselines, exact compatibility properties, provenance, scope ownership, volatile context, and proof targets. This keeps draft wording from anchoring the review.
+
+After drafting, the agent re-reads the raw sources, tries to construct materially incorrect results that could still pass each criterion, checks the contract against the semantic view and applicable lifecycle contracts, and confirms that every planned verification can obtain its required evidence level. Structural errors remain findings but do not end the semantic audit. In authoring mode, every source-resolved defect is repaired before presentation. In review-only mode, the draft remains untouched and the result is exactly `READY`, `NEEDS REVISION`, or `BLOCKED`. Only a genuinely unresolved consequential outcome or context required to determine what should be built returns to one targeted user question.
+
+This preflight uses the same agent by default so Intentwise remains portable and harness-agnostic. It is a bounded authoring and review check, not self-approval or independent assurance. A compact coverage line makes completion inspectable without persisting the worksheet or adding ceremony to the contract. It does not persist critic logs, require another agent, weaken evidence requirements, or authorize implementation. Independent review remains optional when explicitly requested.
 
 ## Autonomy boundary
 

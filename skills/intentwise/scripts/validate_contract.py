@@ -18,7 +18,9 @@ LEVEL_RANK = {"L1": 1, "L2": 2, "L3": 3}
 LEARNING_MODES = {"COMPLETION", "CHECKPOINTS", "OFF"}
 EXECUTION_DISPOSITIONS = {"CONTINUE", "DEFERRED"}
 CONTRACT_TYPE = "Intentwise Delivery Contract"
-CURRENT_SCHEMA = "intentwise/v0.2"
+CURRENT_SCHEMA = "intentwise/v0.4"
+SUPPORTED_SCHEMAS = {"intentwise/v0.2", "intentwise/v0.3", CURRENT_SCHEMA}
+EXPERIENCE_SCHEMAS = {"intentwise/v0.3", CURRENT_SCHEMA}
 REQUIRED_SECTIONS = (
     "Intent",
     "Outcome",
@@ -28,6 +30,24 @@ REQUIRED_SECTIONS = (
     "Learning Mode",
     "Maintainability Expectations",
     "Acceptance Criteria",
+    "Agent Autonomy",
+)
+EXPERIENCE_SECTIONS = (
+    "Target Experience",
+    "Interaction States",
+    "Experience Rules",
+    "Success Scenario",
+)
+PREFLIGHT_CONTENT_SECTIONS = (
+    "Intent",
+    "Outcome",
+    "Target Experience",
+    "Interaction States",
+    "Experience Rules",
+    "Success Scenario",
+    "Constraints",
+    "Delivery Strategy Expectations",
+    "Maintainability Expectations",
     "Agent Autonomy",
 )
 VERIFIED_REQUIRED_SECTIONS = (
@@ -42,11 +62,45 @@ RETROSPECTIVE_SUBSECTIONS = (
     "Drawbacks and Residual Risks",
     "Verification Summary",
 )
-HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 STATUS_RE = re.compile(r"^Status:\s*(\S+)\s*$", re.MULTILINE)
 DECISION_RE = re.compile(r"^###\s+D(\d{3})\s+[—-]\s+(.+?)\s*$", re.MULTILINE)
 CRITERION_RE = re.compile(r"^###\s+AC(\d{2,3})\s+[—-]\s+(.+?)\s*$", re.MULTILINE)
 PLACEHOLDER_RE = re.compile(r"<[^>\n]+>")
+FENCE_LINE_RE = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})")
+INLINE_CODE_RE = re.compile(r"(?P<ticks>`+)[^`\n]*(?P=ticks)")
+HTML_LINE_BREAK_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+PLACEHOLDER_LINE_RE = re.compile(
+    r"^\s*(?:[-*]\s*)?(?:tbd|todo|to be determined|not yet defined)\.?\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+VAGUE_SOURCE_RE = re.compile(
+    r"^(?:the\s+)?(?:(?:repository|repo|codebase)(?:\s+(?:documentation|docs))?"
+    r"|documentation|docs|task|issue|user request)\.?$",
+    re.IGNORECASE,
+)
+VERIFICATION_RESOURCE_PATTERN = (
+    r"(?:fixture(?:\s+data)?|test\s+data|data|artifact|"
+    r"environment|service|access|credentials?)"
+)
+# These catch explicit proof contingencies, not arbitrary test actions or input
+# descriptions. Full evidence readiness still requires the semantic preflight.
+CONDITIONAL_PLAN_RE = re.compile(
+    rf"\b(?:if|when)\s+(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}"
+    r"\s+(?:is|are|becomes?)\s+available\b|"
+    r"\bif\s+(?:(?:a|an|the)\s+[\w-]+|one)\s+(?:exists?|can be found)\b|"
+    r"\b(?:if|when|where)\s+(?:available|possible|practical|feasible)\b|"
+    r"\b(?:if|when|where)\s+supported(?=\s*(?:[.,;:]|$)|\s+(?:by|on|in)\b)|"
+    r"\bas\s+(?:available|possible|practical)\b|"
+    r"\bsubject to availability\b|"
+    rf"\bunless\s+(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}"
+    r"\s+(?:(?:is|are|becomes?)\s+)?(?:unavailable|inaccessible|missing|absent)\b|"
+    rf"\b(?:depending|dependent)\s+on\s+(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}"
+    r"\s+availability\b|"
+    r"\b(?:depending|dependent)\s+on\s+(?:the\s+)?availability\s+(?:of|for)\s+"
+    rf"(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}\b",
+    re.IGNORECASE,
+)
 FRONTMATTER_RE = re.compile(r"\A---\s*\r?\n(.*?)\r?\n---(?:\s*\r?\n|\Z)", re.DOTALL)
 
 
@@ -59,8 +113,38 @@ class ValidationResult:
         return not self.errors
 
 
+def _mask_fenced_code(text: str) -> str:
+    """Replace fenced-code characters with spaces while preserving offsets."""
+
+    result: list[str] = []
+    active_character: str | None = None
+    active_length = 0
+    for line in text.splitlines(keepends=True):
+        match = FENCE_LINE_RE.match(line)
+        if active_character is None:
+            if match is None:
+                result.append(line)
+                continue
+            fence = match.group("fence")
+            active_character = fence[0]
+            active_length = len(fence)
+        else:
+            stripped = line.strip()
+            if (
+                stripped
+                and set(stripped) == {active_character}
+                and len(stripped) >= active_length
+            ):
+                active_character = None
+                active_length = 0
+        result.append(
+            "".join(character if character in "\r\n" else " " for character in line)
+        )
+    return "".join(result)
+
+
 def _sections(text: str) -> dict[str, str]:
-    matches = list(HEADING_RE.finditer(text))
+    matches = list(HEADING_RE.finditer(_mask_fenced_code(text)))
     result: dict[str, str] = {}
     for index, match in enumerate(matches):
         if len(match.group(1)) != 2:
@@ -76,7 +160,11 @@ def _sections(text: str) -> dict[str, str]:
 
 
 def _field(block: str, name: str) -> str | None:
-    match = re.search(rf"^{re.escape(name)}:[ \t]*(.*?)[ \t]*$", block, re.MULTILINE)
+    match = re.search(
+        rf"^{re.escape(name)}:[ \t]*(.*?)[ \t]*$",
+        _mask_fenced_code(block),
+        re.MULTILINE,
+    )
     return match.group(1).strip() if match else None
 
 
@@ -88,7 +176,11 @@ def _frontmatter_field(frontmatter: str, name: str) -> str | None:
 
 
 def _subsections(section: str) -> dict[str, str]:
-    matches = [match for match in HEADING_RE.finditer(section) if len(match.group(1)) == 3]
+    matches = [
+        match
+        for match in HEADING_RE.finditer(_mask_fenced_code(section))
+        if len(match.group(1)) == 3
+    ]
     return {
         match.group(2).strip(): section[
             match.end() : matches[index + 1].start() if index + 1 < len(matches) else len(section)
@@ -98,23 +190,40 @@ def _subsections(section: str) -> dict[str, str]:
 
 
 def _has_placeholder(value: str) -> bool:
-    lowered = value.lower()
-    return bool(PLACEHOLDER_RE.search(value)) or any(
+    searchable = INLINE_CODE_RE.sub("", value)
+    # Mermaid labels use literal HTML line breaks. Keep scanning fenced diagrams
+    # for genuine template markers rather than ignoring their entire contents.
+    searchable = HTML_LINE_BREAK_RE.sub("", searchable)
+    lowered = searchable.lower()
+    return bool(
+        PLACEHOLDER_RE.search(searchable) or PLACEHOLDER_LINE_RE.search(searchable)
+    ) or any(
         phrase in lowered
         for phrase in ("complete after implementation", "not populated until implementation")
     )
 
 
 def _blocks(section: str, pattern: re.Pattern[str]) -> list[tuple[re.Match[str], str]]:
-    matches = list(pattern.finditer(section))
+    matches = list(pattern.finditer(_mask_fenced_code(section)))
     return [
         (match, section[match.end() : matches[index + 1].start() if index + 1 < len(matches) else len(section)].strip())
         for index, match in enumerate(matches)
     ]
 
 
-def validate(text: str) -> ValidationResult:
+def _lifecycle_directory(contract_path: str | Path) -> str | None:
+    parts = Path(contract_path).parts
+    for index in range(len(parts) - 1):
+        if parts[index] == ".intentwise":
+            candidate = parts[index + 1]
+            if candidate in {"drafts", "ready", "active", "completed"}:
+                return candidate
+    return None
+
+
+def validate(text: str, contract_path: str | Path | None = None) -> ValidationResult:
     errors: list[str] = []
+    structural_text = _mask_fenced_code(text)
     schema: str | None = None
     frontmatter_match = FRONTMATTER_RE.match(text)
     if not frontmatter_match:
@@ -124,10 +233,12 @@ def validate(text: str) -> ValidationResult:
         if contract_type != CONTRACT_TYPE:
             errors.append(f"frontmatter type must be '{CONTRACT_TYPE}'")
         schema = _frontmatter_field(frontmatter_match.group(1), "schema")
-        if schema is not None and schema != CURRENT_SCHEMA:
-            errors.append(f"frontmatter schema must be '{CURRENT_SCHEMA}' when present")
+        if schema is not None and schema not in SUPPORTED_SCHEMAS:
+            errors.append(
+                "frontmatter schema must be one of " + ", ".join(sorted(SUPPORTED_SCHEMAS))
+            )
 
-    status_matches = STATUS_RE.findall(text)
+    status_matches = STATUS_RE.findall(structural_text)
     status = status_matches[0] if len(status_matches) == 1 else None
     if len(status_matches) != 1:
         errors.append("contract must contain exactly one 'Status: <value>' line")
@@ -135,13 +246,34 @@ def validate(text: str) -> ValidationResult:
         errors.append(f"invalid status '{status}'; expected one of {', '.join(sorted(STATUSES))}")
 
     sections = _sections(text)
-    required_sections = REQUIRED_SECTIONS + (("Execution",) if schema == CURRENT_SCHEMA else ())
+    required_sections = REQUIRED_SECTIONS
+    if schema in EXPERIENCE_SCHEMAS:
+        required_sections += EXPERIENCE_SECTIONS
+    if schema in SUPPORTED_SCHEMAS:
+        required_sections += ("Execution",)
+    section_names = [
+        match.group(2).strip()
+        for match in HEADING_RE.finditer(structural_text)
+        if len(match.group(1)) == 2
+    ]
+    duplicate_required = [
+        name for name in required_sections if section_names.count(name) > 1
+    ]
+    if duplicate_required:
+        errors.append("duplicate required section(s): " + ", ".join(duplicate_required))
     missing = [name for name in required_sections if name not in sections]
     if missing:
         errors.append("missing required section(s): " + ", ".join(missing))
     for name in required_sections:
         if name in sections and not sections[name]:
             errors.append(f"section '{name}' must not be empty")
+        elif (
+            schema == CURRENT_SCHEMA
+            and name in PREFLIGHT_CONTENT_SECTIONS
+            and name in sections
+            and _has_placeholder(sections[name])
+        ):
+            errors.append(f"section '{name}' must not contain placeholder text")
 
     learning_mode = _field(sections.get("Learning Mode", ""), "Mode")
     if learning_mode not in LEARNING_MODES:
@@ -149,10 +281,42 @@ def validate(text: str) -> ValidationResult:
             "Learning Mode must contain 'Mode: COMPLETION', 'Mode: CHECKPOINTS', or 'Mode: OFF'"
         )
 
+    disposition: str | None = None
     if "Execution" in sections:
         disposition = _field(sections["Execution"], "Disposition")
         if disposition not in EXECUTION_DISPOSITIONS:
             errors.append("Execution must contain 'Disposition: CONTINUE' or 'Disposition: DEFERRED'")
+
+    if contract_path is not None:
+        lifecycle = _lifecycle_directory(contract_path)
+        allowed_statuses = {
+            "drafts": {"DRAFT"},
+            "ready": {"APPROVED"},
+            "active": {"APPROVED", "IMPLEMENTED"},
+            "completed": {"VERIFIED"},
+        }
+        required_dispositions = {
+            "ready": "DEFERRED",
+            "active": "CONTINUE",
+            "completed": "CONTINUE",
+        }
+        if lifecycle is not None:
+            if status not in allowed_statuses[lifecycle]:
+                errors.append(
+                    f"lifecycle directory '{lifecycle}' is incompatible with status '{status}'"
+                )
+            required_disposition = required_dispositions.get(lifecycle)
+            # Schema-less legacy records may omit Execution altogether. Enforce
+            # its disposition only when required by the schema or supplied.
+            if (
+                required_disposition is not None
+                and (schema in SUPPORTED_SCHEMAS or "Execution" in sections)
+                and disposition != required_disposition
+            ):
+                errors.append(
+                    f"lifecycle directory '{lifecycle}' requires Disposition: "
+                    f"{required_disposition}"
+                )
 
     decisions = _blocks(sections.get("Consequential Decisions", ""), DECISION_RE)
     decision_ids = [match.group(1) for match, _ in decisions]
@@ -170,6 +334,8 @@ def validate(text: str) -> ValidationResult:
                 errors.append(f"{identifier} must contain a non-empty {field} field")
             elif _has_placeholder(value):
                 errors.append(f"{identifier} {field} must not contain placeholder text")
+            elif schema == CURRENT_SCHEMA and field == "Sources" and VAGUE_SOURCE_RE.fullmatch(value):
+                errors.append(f"{identifier} Sources must contain a precise evidence locator")
 
     criteria = _blocks(sections.get("Acceptance Criteria", ""), CRITERION_RE)
     if not criteria:
@@ -183,13 +349,34 @@ def validate(text: str) -> ValidationResult:
         identifier = f"AC{match.group(1)}"
         expected = _field(block, "Expected")
         required_level = _field(block, "Required evidence")
+        planned_verification = _field(block, "Planned verification")
+        normalized_plan = planned_verification.lower().rstrip(".") if planned_verification else ""
         observed_level = _field(block, "Observed evidence")
         result = _field(block, "Result")
         evidence = _field(block, "Evidence")
         if not expected:
             errors.append(f"{identifier} must contain a non-empty Expected field")
+        elif schema == CURRENT_SCHEMA and _has_placeholder(expected):
+            errors.append(f"{identifier} Expected must not contain placeholder text")
         if required_level not in LEVELS:
             errors.append(f"{identifier} Required evidence must be L1, L2, or L3")
+        if schema == CURRENT_SCHEMA:
+            if not planned_verification:
+                errors.append(f"{identifier} must contain a non-empty Planned verification field")
+            elif _has_placeholder(planned_verification) or normalized_plan in {
+                "none",
+                "n/a",
+                "tbd",
+                "to be determined",
+                "not yet planned",
+                "not yet collected",
+            }:
+                errors.append(f"{identifier} Planned verification must not contain placeholder text")
+            elif CONDITIONAL_PLAN_RE.search(planned_verification):
+                errors.append(
+                    f"{identifier} Planned verification must not make evidence conditional "
+                    "on availability or feasibility"
+                )
         if observed_level not in OBSERVED_LEVELS:
             errors.append(f"{identifier} Observed evidence must be NONE, L1, L2, or L3")
         if result not in RESULTS:
@@ -259,7 +446,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: cannot read {args.contract}: {error}", file=sys.stderr)
         return 2
 
-    result = validate(text)
+    result = validate(text, args.contract)
     if result.valid:
         print(f"VALID: {args.contract} has a valid Intentwise contract structure.")
         print("NOTE: structural validity does not prove implementation or runtime behavior.")

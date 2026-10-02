@@ -1,6 +1,6 @@
 ---
 type: Intentwise Delivery Contract
-schema: intentwise/v0.2
+schema: intentwise/v0.4
 title: Diagnostic event retention
 description: Retain recent diagnostic events without storing payload bodies.
 tags: [intentwise, delivery]
@@ -18,6 +18,30 @@ Add diagnostic event retention.
 ## Outcome
 
 Operators can inspect recent diagnostic events.
+
+## Target Experience
+
+```text
+Diagnostic event -> privacy filter -> 30-day event store -> operator query
+```
+
+An operator sees recent diagnostic metadata through the existing event-store boundary; payload bodies never enter the retained record.
+
+## Interaction States
+
+| Trigger or state | Observable result | Persistent meaning or evidence |
+| --- | --- | --- |
+| A diagnostic event is emitted | Its metadata becomes queryable | The stored record contains no payload body |
+| An event becomes older than 30 days | It no longer appears in queries | The retention boundary remains explicit |
+
+## Experience Rules
+
+- Retained events remain queryable for 30 days.
+- Payload bodies are never retained.
+
+## Success Scenario
+
+An operator queries a diagnostic event emitted during the previous 30 days, finds its metadata, and confirms that the stored result contains no payload body.
 
 ## Consequential Decisions
 
@@ -61,6 +85,8 @@ Expected: An operator can query events from the previous 30 days.
 
 Required evidence: L3
 
+Planned verification: Query deterministic events just inside and outside the 30-day boundary and assert that only the recent event is returned to the operator.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -73,6 +99,8 @@ Expected: Stored events contain no payload body.
 
 Required evidence: L2
 
+Planned verification: Run the event-persistence tests with a payload-bearing fixture and assert that the stored record contains metadata but no payload body.
+
 Observed evidence: NONE
 
 Result: UNPROVEN
@@ -84,6 +112,8 @@ Evidence: Not yet collected.
 Expected: Retention is implemented through the repository's existing event-store boundary, with deterministic tests covering retention configuration.
 
 Required evidence: L2
+
+Planned verification: Run the retention configuration tests and inspect the changed call path to assert that retention remains behind the existing event-store boundary.
 
 Observed evidence: NONE
 
