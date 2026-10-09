@@ -34,7 +34,7 @@ Coding agents are increasingly good at planning and execution. The harder proble
 | A plan becomes an execution bureaucracy | Preserve a compact delivery contract, not a task graph. |
 | The outcome is too abstract to picture | Show the target flow or before/after state, observable interactions, invariants, and one success scenario. |
 | A structurally valid draft still has approval gaps | Attack criteria with counterexamples and check input, failure, scope, and evidence semantics before showing the draft. |
-| Preflight turns every uncertainty into a blocker | Repair source-resolved defects, delegate reversible choices, preserve explicit unknowns, and reserve `BLOCKED` for genuinely unresolved high-consequence outcomes. |
+| Preflight turns every uncertainty into a blocker | Repair source-resolved defects, delegate implementation choices, preserve explicit unknowns, and reserve `BLOCKED` for unresolved material user-owned outcomes. |
 | Discovery turns a focused task into an architecture program | Preserve the proof core, stop at evidence saturation, and expand scope only when concrete dependencies or risks justify it. |
 | Implementation drifts from the agreement | Stop only when new information crosses the consequential-decision frontier. |
 | “It works” is accepted without proof | Verify every criterion as `PASS`, `FAIL`, or `UNPROVEN` at an explicit evidence level. |
@@ -68,9 +68,9 @@ flowchart LR
 1. **Discover:** inspect code, tests, configuration, project instructions, and documentation before asking anything.
 2. **Research when it matters:** use available internal and current authoritative sources when they could materially change a consequential recommendation.
 3. **Find the decision frontier:** separate human-owned outcomes and trade-offs from delegated implementation choices.
-4. **Grill proportionally:** ask one consequence-focused question at a time, recommend the best fit, and stop at diminishing returns.
+4. **Grill in rounds:** answer factual questions from the codebase, ask independent unresolved outcome choices together with recommendations, wait for answers, then revisit dependent choices.
 5. **Shape semantics:** before drafting criteria, discover overlapping approved or verified contracts, distinguish product authority from implementation evidence, and derive operational definitions, material states and failures, reconciliation rules, unknown behavior, baselines, compatibility properties, provenance, scope, current context, and proof targets when applicable.
-6. **Contract:** write one compact `DRAFT` contract from that source-derived view, with a concrete verification plan for every criterion.
+6. **Contract:** use `intentwise/v0.4` with `format: compact` by default, preserving the outcome, constraints and evidence ledger without repeated views. Use the full layout only when complexity or the user's request warrants it.
 7. **Audit:** structurally validate the draft, attack criteria with counterexamples, trace the source-derived view through the contract, and revise established gaps before presentation.
 8. **Approve and start or defer:** wait for explicit human approval, then implement when disposition is `CONTINUE` or preserve a build-ready contract under `ready/` when it is `DEFERRED`.
 9. **Delegate:** let Codex, Claude Code, or Copilot choose its own implementation path.
@@ -91,7 +91,7 @@ After "Show transformations"
 bronze.orders --> Normalize Orders --> silver.orders
 ```
 
-It then records the observable states, user-visible invariants, and one representative end-to-end scenario. The visual is proportional to the work: use Mermaid or plain text when a journey, data flow, control flow, or state transition clarifies the result; use a compact before/after mapping when it does not. Missing or uncertain behavior is labeled explicitly. These sections describe the result, not implementation order.
+Add a visual, state table or representative scenario only when it helps review the outcome. Ordinary work can state its observable behavior directly in criteria. Missing or uncertain behavior remains explicit; current bugs do not authorize excluding a requested failure case. These views describe results, not implementation order.
 
 ## Quick start
 
@@ -207,7 +207,7 @@ Result: UNPROVEN
 Evidence: Not yet collected.
 ```
 
-After reviewing the full contract, approve it explicitly:
+After reviewing the draft, approve it explicitly:
 
 ```text
 Approved. Implement it.
@@ -227,9 +227,11 @@ Everything not constrained by the approved intent, decisions, acceptance criteri
 
 Before writing acceptance criteria, the authoring agent searches overlapping `.intentwise/ready/`, `.intentwise/active/`, and `.intentwise/completed/` records and builds a temporary source-derived semantic view. It distinguishes normative product authority—explicit requirements and approved or verified decisions—from descriptive implementation evidence such as code and tests. Discovery preserves the authoritative request, relevant current path, observable gap, confirmed participating scope, proof target, and material contradictions or unknowns, then stops when more inspection is unlikely to change them. It expands into adjacent architecture, history, migration, rollout, or related work only when evidence reveals a material dependency or risk. Depending on the task, it then resolves applicable operational definitions, state and failure combinations, mutually exclusive accounting, missing and unknown behavior, observed baselines versus lasting invariants, exact compatibility properties, provenance, scope ownership, volatile execution context, and concrete proof targets. This prevents the first plausible draft or current implementation from defining the terms of its own review without turning every task into a system-wide analysis.
 
-After drafting, the agent re-reads the raw sources, structurally validates the contract, attacks every criterion with counterexamples, and traces the semantic view through the final wording. Structural errors do not stop the semantic audit, and conditional evidence promises such as “when fixture data is available” are rejected. Source-resolved defects are repaired automatically; local or reversible uncertainty remains delegated or explicit. `BLOCKED` is reserved for a high-consequence outcome that no authoritative source resolves and that would be risky or costly to default, or missing context required to determine what should be built.
+After drafting, the agent re-reads the raw sources, structurally validates the contract, attacks every criterion with counterexamples, and traces the semantic view through the final wording. It also checks whether a correct implementation would be rejected for an unauthorized restriction. Structural errors do not stop the semantic audit, and promises that make required evidence conditional, such as “when fixture data is available”, are rejected; generic hedges such as “where possible” produce a validator warning for the semantic audit to judge. A criterion the agent proposes beyond the request is labelled `Agent-proposed:` and left for you to keep or drop. Clear low-consequence tasks skip the contract and preflight. Source-resolved defects are repaired automatically; implementation uncertainty remains delegated or explicit. `BLOCKED` means a material user-owned outcome choice remains unresolved, or context needed to determine what should be built is missing. Easy reversal does not transfer a product decision to the agent.
 
-The normal authoring flow remains smooth: the user receives the cleaned draft plus one compact coverage line. When the user asks only for a review, Intentwise leaves the draft untouched and returns `READY`, `NEEDS REVISION`, or `BLOCKED` with actionable findings. The preflight uses the same agent by default so the workflow remains portable across Codex, Claude Code, and Copilot. It does not expose critic logs, add worksheet sections to the contract, assign confidence scores, require multi-agent orchestration, or replace human approval.
+Contracts protect outcomes while allowing implementation to evolve. Criteria contain material authorized obligations and agreed tolerances; illustrative snapshots, forecast file trees, and advisory recommendations do not become extra acceptance gates. Planned checks may be replaced with equivalent or stronger evidence of the same property and boundary. Changes to the outcome, protected constraints, tolerances, or minimum evidence use a focused user-approved amendment. Missing required proof stays `UNPROVEN`; an amendment never substitutes for proof.
+
+The user receives the cleaned draft and a brief readiness result. Coverage counts are optional for complex reviews or requested audits; they do not prove completeness. Audit added obligations and exclusions alike: ordinary bad-input handling cannot be carved out merely because current code crashes on it. Review-only work leaves the draft untouched and returns `READY`, `NEEDS REVISION`, or `BLOCKED` with material findings. The preflight uses the same agent by default, remains portable, and never replaces human approval.
 
 ## Evidence, not confidence
 
@@ -250,7 +252,9 @@ Intentwise never silently lowers the requirement:
 
 The included validator checks the contract’s internal structure and evidence-level consistency. Structural validity is not semantic readiness: a draft can pass this validator and still be unsafe to approve. `READY` requires the complete source-derived semantic preflight with no remaining material semantic finding.
 
-New contracts use `intentwise/v0.4`; the validator continues to accept existing `intentwise/v0.2`, `intentwise/v0.3`, and schema-less contracts under their original structural rules.
+New contracts default to `intentwise/v0.4` with `format: compact`. They retain source-linked criteria, concrete verification, evidence-level guards, approval and lifecycle rules; a brief retrospective and actual change surface complete the record. The optional full layout remains available. Existing contracts without a format field retain their full validation rules, including `intentwise/v0.2`, `intentwise/v0.3`, and schema-less records; they are never migrated automatically.
+
+Verification starts with adequate existing checks and adds only uncovered assertions. Equivalent methods are alternatives, not cumulative gates. Keep ordinary delivery facts in one brief retrospective; promote a separate knowledge concept only when it has durable value beyond the record.
 
 ```sh
 python3 skills/intentwise/scripts/validate_contract.py \
@@ -302,7 +306,8 @@ Explore the [complete golden delivery](examples/golden-delivery/.intentwise/comp
 - **Evidence-backed:** recommendations expose their sources and applicability.
 - **Visually concrete:** contracts show the smallest useful target flow or before/after state before approval.
 - **Approval-ready:** source-derived semantics are resolved before drafting, followed by a bounded counterexample, consistency, scope, and evidence audit.
-- **Progress-preserving:** known corrections are repaired, reversible choices stay delegated, and blockers are limited to genuinely unresolved human-owned outcomes.
+- **Progress-preserving:** known corrections are repaired, implementation choices stay delegated, and blockers are limited to genuinely unresolved human-owned outcomes.
+- **Proportionate proof:** material outcomes determine acceptance; advisory guidance stays advisory, and equivalent verification methods may evolve.
 - **Adaptive depth:** decision density, not task size, controls the ceremony.
 - **Native autonomy:** execution topology and implementation order belong to the harness.
 - **Contract-first verification:** compare evidence with the agreement, not implementation claims.

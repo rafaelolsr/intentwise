@@ -16,7 +16,7 @@ An explicit current authoritative statement that intentionally addresses the sam
 
 Use available tools and connections; Intentwise does not guarantee an MCP, repository, or network source exists and does not authorize installing, connecting, or exposing a new source. Record stable citations or repository paths without copying secrets, credentials, customer data, or sensitive internal content into the contract.
 
-Research only until additional evidence is unlikely to change the consequential recommendation. Do not research local, reversible, conventional implementation choices. If a material source is unavailable, disclose the limitation. Continue with an explicit assumption when reversal is cheap. Ask the user only when the unresolved choice materially changes the outcome and a default would be risky or expensive to reverse; a known correction is not a question.
+Research only until additional evidence is unlikely to change the consequential recommendation. Use the codebase as the source of truth for facts about current behavior, interfaces, constraints, and feasible paths. Investigate factual uncertainty yourself rather than interviewing the user about what the repository can establish. If a material source is unavailable, disclose the limitation; a low-impact implementation assumption may remain explicit. Ask whenever an unresolved user-owned choice materially changes the intended outcome, even if reversal is cheap. A source-established correction is not a question.
 
 External guidance is an input, not authority. Compare it with repository architecture, product constraints, operational cost, migration burden, and reversibility. Recommend the best-fit solution and explain why adopting, adapting, or rejecting the external pattern is appropriate here. Never promise that a solution is universally “best.”
 
@@ -28,17 +28,19 @@ External guidance is an input, not authority. Compare it with repository archite
 
 "Should we use BatchSpanProcessor or SimpleSpanProcessor?"
 
-Ask users about consequences and outcomes. Translate those answers into implementation mechanisms yourself.
+Do not ask whether existing behavior should be preserved, or whether to add something the request did not mention (a total row, extra columns, new options), unless evidence shows a conflict or the request implies it; preserve by default and leave additions out. Ask users about consequences and outcomes. Translate those answers into implementation mechanisms yourself.
 
-Do not merely translate the request into a contract. When repository evidence, connected context, or current authoritative guidance exposes a consequential downside, challenge the requested outcome, explain the trade-off, and recommend a safer or more effective alternative. Do not challenge preferences that remain local, reversible, or low-consequence.
+Do not merely translate the request into a contract. When repository evidence, connected context, or current authoritative guidance exposes a consequential downside, challenge the requested outcome, explain the trade-off, and recommend a safer or more effective alternative. Do not challenge low-impact preferences or delegated implementation details.
 
-## Pattern
+## Question rounds
 
-- Why this matters
-- Options
-- Recommendation
-- Evidence basis and applicability
-- Consequence
-- User choice
+Model unresolved decisions by their dependencies. In each round, ask the independent decisions whose prerequisites are settled. Group them as a short numbered list; keep each question understandable without another answer from the same round. Defer dependent questions until their parent choice is answered. Investigate missing facts while independent questions can proceed; use available tools without requiring subagents or a particular harness.
 
-Ask one consequential question at a time. Stop when further questions only transfer implementation work back to the human.
+For each question, name the outcome choice, recommend the best fit, and explain the material trade-off using the evidence already found. Keep the wording concise enough that the user can answer by number or accept a recommendation. For example:
+
+1. Should the report show the current backlog or work completed in a date range? I recommend the current backlog because the existing store has current states but no transition history. A completion trend would require collecting that history.
+2. Should leads see team totals or individual breakdowns? I recommend team totals for this overview; individual breakdowns introduce a different audience and privacy decision.
+
+Wait for answers before advancing dependent decisions or drafting their commitments. If the user answers only part of a round, preserve unanswered choices and ask for those still needed. Never treat silence, a preselected option, your recommendation, or general enthusiasm as an answer. An explicit instruction to choose on the user's behalf delegates that choice within the stated scope.
+
+Recompute the remaining decisions after every answer rather than following a fixed questionnaire. Challenge consequential downsides and conflicting answers with a focused follow-up. Stop when material user-owned choices are resolved by answers or existing authority and only implementation details remain. Summarize the resulting outcome in the draft for the existing approval step; do not add another confirmation gate.

@@ -1,6 +1,16 @@
+# Delivery contract formats
+
+Use `intentwise/v0.4` with `format: compact` by default. This keeps the agreement and evidence inspectable without requiring separate views of the same behavior. Multiple modes or failure cases alone do not require the full layout; describe them in criteria or a small optional state table. Use the [full layout](full-contract-template.md) when substantial interface, migration/rollout or architectural complexity makes the compact record hard to review, or the user requests it. Keep an existing contract's format when resuming it; never migrate it just to satisfy validation.
+
+The codebase establishes current behavior, not permission to add obligations or carve requested behavior out of scope. Prefix `Sources:` with `Agent-proposed:` for a criterion the user did not request but concrete evidence implies; the user keeps or drops it at approval. Trace each material criterion and exclusion to authority. Put each fact in one place; link to exact binding source sections instead of repeating them. A diagram, decision record, learning mode, forecast file tree, or knowledge note is optional unless it materially helps this task.
+
+Use this compact layout, replacing placeholders and removing template instructions:
+
+```markdown
 ---
 type: Intentwise Delivery Contract
 schema: intentwise/v0.4
+format: compact
 title: <short task title>
 description: <one-sentence intended outcome>
 tags: [intentwise, delivery]
@@ -13,169 +23,41 @@ Status: DRAFT
 
 ## Intent
 
-<original user intent>
+<original request or precise task locator>
 
 ## Outcome
 
-<observable state that must become true>
-
-## Target Experience
-
-Show the final state in the smallest visual form that materially improves understanding. Prefer Mermaid when supported or a fenced `text` diagram otherwise. Use a user journey, data/control flow, state transition, or before/after mapping as the task requires. Show the default state first, label important incomplete or uncertain paths explicitly, and omit implementation sequencing.
-
-```text
-<starting state> -> <observable behavior> -> <expected result>
-```
-
-<one concise explanation of what the user or operator sees by default and what is in scope>
-
-## Interaction States
-
-Use actions for interactive work and events or conditions for system behavior. Include only states that materially distinguish the expected result.
-
-| Trigger or state | Observable result | Persistent meaning or evidence |
-| --- | --- | --- |
-| <action, event, or condition> | <what changes or becomes visible> | <what remains true or inspectable> |
-
-## Experience Rules
-
-- <externally visible behavior or invariant that must remain true>
-
-## Success Scenario
-
-<one representative end-to-end scenario from the starting condition through the important action or system flow to the observable result; include a degraded or incomplete-evidence case when it is central to the task>
-
-## Consequential Decisions
-
-### D001 — <decision>
-
-Choice: <selected consequence or outcome>
-
-Rationale: <why this choice best supports the intent>
-
-Evidence basis: <repository, connected organizational, current primary-source, or explicitly disclosed model basis>
-
-Sources: <precise project-relative paths and symbols/tests, stable connected record IDs, user-supplied task identifiers, or authoritative URLs; never “repository” alone>
-
-Applicability: <why this evidence fits the current system and constraints>
+<observable result; include a short example or state mapping only when useful>
 
 ## Constraints
 
-- <constraint>
-
-## Delivery Strategy Expectations
-
-Advisory outcome-level guidance only; implementation order remains delegated.
-
-- <early evidence, deployability, compatibility, or rollout expectation; or state that no special strategy expectation exists>
-
-## Learning Mode
-
-Mode: COMPLETION
-
-Use `COMPLETION`, `CHECKPOINTS`, or `OFF`.
+<protected properties, source-authorized exclusions and material allowed variation; no additional constraints if none apply>
 
 ## Execution
 
 Disposition: CONTINUE
 
-Use `CONTINUE` when approval should start implementation immediately. Use `DEFERRED` when approval should make the contract build-ready under `.intentwise/ready/` and stop.
-
-## Maintainability Expectations
-
-- <concrete repository-derived expectation and the acceptance criterion that verifies it; or state that repository conventions are sufficient>
-
 ## Acceptance Criteria
 
-Write acceptance criteria only after completing the temporary source-derived semantic readiness worksheet from the draft preflight. Preserve every material source commitment in a criterion clause, including conditions, exceptions, and protected compatibility properties. Group clauses for readability without replacing them with broad labels; each clause needs a corresponding verification assertion. Sources locate authority and do not implicitly import omitted requirements. Each `Planned verification` must identify a concrete scenario or artifact, the action or check, and the observable assertions that can reach the required evidence level. It must not depend on “if available,” “when data is available,” or similar escape clauses. It is a verification plan, not evidence already obtained.
+### AC01 — <material outcome>
 
-### AC01 — <criterion>
-
-Expected: <observable behavior>
-
+Expected: <observable behavior and any agreed tolerance>
 Sources: <precise authority locators for the normative commitments covered by this criterion>
-
 Required evidence: L1 | L2 | L3
-
-Planned verification: <specific scenario or artifact, check to run, and observable assertions>
-
-Observed evidence: NONE | L1 | L2 | L3
-
+Planned verification: <existing adequate check, or a focused check for an uncovered property; scenario and assertions>
+Observed evidence: NONE
 Result: UNPROVEN
-
-Evidence: <not yet collected>
+Evidence: Not yet collected.
 
 ## Agent Autonomy
 
-All implementation decisions not constrained above remain delegated to the implementation agent.
-
-## Anticipated Change Surface
-
-Advisory forecast only. This is not an implementation plan or approval boundary and may evolve without user approval unless a change crosses the consequential decision frontier.
-
-```text
-<project-relative tree with [create], [modify], or [delete] annotations>
+Unspecified implementation mechanisms and equivalent verification methods remain delegated.
 ```
 
-## Actual Change Surface
+Use `CONTINUE` when approval starts implementation, or `DEFERRED` when approval only makes the contract ready. Learning mode defaults to `COMPLETION`; add `## Learning Mode` with `Mode: CHECKPOINTS` or `Mode: OFF` only when selected. If a consequential choice needs preserving, add a short `## Consequential Decisions` record with `### D001 — title`, `Choice`, `Rationale`, and precise `Sources`; do not document routine mechanisms as product decisions.
 
-Complete after implementation with the project-relative files actually created, modified, or deleted.
+Choose the lowest evidence sufficient for each promise. A plan is a starting method, not an additional guarantee: an existing suite plus a focused uncovered-case check may cover several criteria. Do not list overlapping suites, baseline replays, snapshots and independent assertions as cumulative gates. Equivalent or stronger methods may replace the plan while preserving the same property and boundary. Required real-platform evidence stays required.
 
-```text
-<actual project-relative tree with [created], [modified], or [deleted] annotations>
-```
+At closure, add `## Actual Change Surface` with the actual files and `## Delivery Retrospective` with a brief explanation of what changed, how it works, meaningful trade-offs if any, and residual risks. Keep criterion evidence in the ledger rather than repeat it here. Routine formatting, helper placement and test-file choices need no decision essay. Promote knowledge only when it has durable value beyond this record; cite any promoted paths in the retrospective or an optional `## Knowledge Promotion` section.
 
-## Delivery Retrospective
-
-Complete before setting `Status: VERIFIED`. Keep it concise and explanatory; omit routine activity and hidden reasoning.
-
-### Implementation Summary
-
-<what changed and what capability now exists>
-
-### How It Works
-
-<important entry points, component interactions, data or control flow, and fit with the existing system>
-
-### Autonomous Decisions
-
-#### <meaningful implementation decision>
-
-Decision: <what was chosen>
-
-Why: <why it fit the contract and repository>
-
-Alternative considered: <strongest realistic alternative>
-
-Rejected because: <why that alternative was less suitable>
-
-Drawbacks: <costs or limitations introduced by this choice>
-
-### Drawbacks and Residual Risks
-
-<remaining limitations, operational consequences, compatibility concerns, or unproven behavior; state when none are known>
-
-### Verification Summary
-
-<acceptance-criterion statuses and strongest supporting evidence>
-
-## Knowledge Promotion
-
-Complete before setting `Status: VERIFIED`.
-
-- Task-local knowledge retained only in this contract: <summary or none>
-- Knowledge concepts created or updated: <project-relative paths or none>
-- Assets created or updated: <project-relative paths or none>
-
-## Lifecycle
-
-Use the same `<contract-id>.md` filename through every lifecycle directory. Prefer `<issue-or-task-id>-<short-slug>.md` when an external ID exists. Otherwise use `<UTC-YYYYMMDD-HHMMSS>-<short-slug>-<six-random-hex>.md`. Never overwrite an existing file.
-
-- `.intentwise/drafts/` + `DRAFT` while consequential decisions or approval remain open.
-- `.intentwise/ready/` + `APPROVED` when the user accepted the contract with `Disposition: DEFERRED` and implementation has not started.
-- `.intentwise/active/` + `APPROVED` while implementation is underway, then `IMPLEMENTED` when implementation is complete but verification is not.
-- `.intentwise/completed/` + `VERIFIED` only when every acceptance criterion is `PASS` at its required evidence level and the actual change surface, delivery retrospective, and knowledge-promotion record are complete.
-
-Each session owns only the contract it created or was explicitly asked to resume. Do not edit, validate as part of the current task, move, or close other contracts.
-
-After every criterion passes and the completed record validates, set `VERIFIED` and move the same filename from `active/` to `.intentwise/completed/<contract-id>.md`. Keep a failed or unproven contract active unless the user explicitly closes it. Existing contracts under `.intentwise/active/` and a legacy `.intentwise/active.md` may be resumed in place when explicitly identified; never migrate them automatically.
+Keep the same filename through `drafts/DRAFT`, `ready/APPROVED` with `DEFERRED`, `active/APPROVED` or `IMPLEMENTED` with `CONTINUE`, and `completed/VERIFIED`. Only explicit acceptance approves a draft. Move to `completed` only when every criterion passes at its required level and the actual surface and retrospective are complete; otherwise retain honest FAIL or UNPROVEN results in `active`. Update only this session's selected contract. Preserve prior commitments when the user explicitly approves an amendment.

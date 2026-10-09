@@ -17,6 +17,7 @@ OBSERVED_LEVELS = {"NONE", *LEVELS}
 LEVEL_RANK = {"L1": 1, "L2": 2, "L3": 3}
 LEARNING_MODES = {"COMPLETION", "CHECKPOINTS", "OFF"}
 EXECUTION_DISPOSITIONS = {"CONTINUE", "DEFERRED"}
+CONTRACT_FORMATS = {"compact", "full"}
 CONTRACT_TYPE = "Intentwise Delivery Contract"
 CURRENT_SCHEMA = "intentwise/v0.4"
 SUPPORTED_SCHEMAS = {"intentwise/v0.2", "intentwise/v0.3", CURRENT_SCHEMA}
@@ -29,6 +30,14 @@ REQUIRED_SECTIONS = (
     "Delivery Strategy Expectations",
     "Learning Mode",
     "Maintainability Expectations",
+    "Acceptance Criteria",
+    "Agent Autonomy",
+)
+COMPACT_REQUIRED_SECTIONS = (
+    "Intent",
+    "Outcome",
+    "Constraints",
+    "Execution",
     "Acceptance Criteria",
     "Agent Autonomy",
 )
@@ -66,7 +75,11 @@ HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*$", re.MULTILINE)
 STATUS_RE = re.compile(r"^Status:\s*(\S+)\s*$", re.MULTILINE)
 DECISION_RE = re.compile(r"^###\s+D(\d{3})\s+[—-]\s+(.+?)\s*$", re.MULTILINE)
 CRITERION_RE = re.compile(r"^###\s+AC(\d{2,3})\s+[—-]\s+(.+?)\s*$", re.MULTILINE)
-PLACEHOLDER_RE = re.compile(r"<[^>\n]+>")
+# Template markers look like "<short task title>": the opening bracket does not
+# follow a word character (so `Map<String, int>` is prose) and does not start with
+# a digit, "=" or space (so `<200ms for inputs >1k` is a comparison); the closing
+# bracket never follows whitespace.
+PLACEHOLDER_RE = re.compile(r"(?<![\w<])<(?![\d=\s])[^<>\n]*[^<>\s]>")
 FENCE_LINE_RE = re.compile(r"^[ \t]*(?P<fence>`{3,}|~{3,})")
 INLINE_CODE_RE = re.compile(r"(?P<ticks>`+)[^`\n]*(?P=ticks)")
 HTML_LINE_BREAK_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
@@ -89,16 +102,22 @@ CONDITIONAL_PLAN_RE = re.compile(
     rf"\b(?:if|when)\s+(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}"
     r"\s+(?:is|are|becomes?)\s+available\b|"
     r"\bif\s+(?:(?:a|an|the)\s+[\w-]+|one)\s+(?:exists?|can be found)\b|"
-    r"\b(?:if|when|where)\s+(?:available|possible|practical|feasible)\b|"
     r"\b(?:if|when|where)\s+supported(?=\s*(?:[.,;:]|$)|\s+(?:by|on|in)\b)|"
-    r"\bas\s+(?:available|possible|practical)\b|"
-    r"\bsubject to availability\b|"
     rf"\bunless\s+(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}"
     r"\s+(?:(?:is|are|becomes?)\s+)?(?:unavailable|inaccessible|missing|absent)\b|"
     rf"\b(?:depending|dependent)\s+on\s+(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}"
     r"\s+availability\b|"
-    r"\b(?:depending|dependent)\s+on\s+(?:the\s+)?availability\s+(?:of|for)\s+"
+    r"\b(?:depending|dependent)\s+on\s+the\s+availability\s+(?:of|for)\s+"
     rf"(?:the\s+)?{VERIFICATION_RESOURCE_PATTERN}\b",
+    re.IGNORECASE,
+)
+# Generic hedges ("where possible", "reuse fixtures when available") are often a
+# legitimate "reuse what exists" plan, so they warn instead of blocking. The
+# semantic preflight decides whether required evidence has become optional.
+HEDGED_PLAN_RE = re.compile(
+    r"\b(?:if|when|where)\s+(?:available|possible|practical|feasible)\b|"
+    r"\bas\s+(?:available|possible|practical)\b|"
+    r"\bsubject to availability\b",
     re.IGNORECASE,
 )
 FRONTMATTER_RE = re.compile(r"\A---\s*\r?\n(.*?)\r?\n---(?:\s*\r?\n|\Z)", re.DOTALL)
@@ -107,6 +126,7 @@ FRONTMATTER_RE = re.compile(r"\A---\s*\r?\n(.*?)\r?\n---(?:\s*\r?\n|\Z)", re.DOT
 @dataclass(frozen=True)
 class ValidationResult:
     errors: tuple[str, ...]
+    warnings: tuple[str, ...] = ()
 
     @property
     def valid(self) -> bool:
@@ -223,8 +243,10 @@ def _lifecycle_directory(contract_path: str | Path) -> str | None:
 
 def validate(text: str, contract_path: str | Path | None = None) -> ValidationResult:
     errors: list[str] = []
+    warnings: list[str] = []
     structural_text = _mask_fenced_code(text)
     schema: str | None = None
+    contract_format = "full"
     frontmatter_match = FRONTMATTER_RE.match(text)
     if not frontmatter_match:
         errors.append("contract must begin with OKF-compatible YAML frontmatter")
@@ -233,6 +255,13 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
         if contract_type != CONTRACT_TYPE:
             errors.append(f"frontmatter type must be '{CONTRACT_TYPE}'")
         schema = _frontmatter_field(frontmatter_match.group(1), "schema")
+        supplied_format = _frontmatter_field(frontmatter_match.group(1), "format")
+        if supplied_format is not None:
+            contract_format = supplied_format
+            if contract_format not in CONTRACT_FORMATS:
+                errors.append("frontmatter format must be compact or full")
+            elif contract_format == "compact" and schema != CURRENT_SCHEMA:
+                errors.append(f"compact format requires schema {CURRENT_SCHEMA}")
         if schema is not None and schema not in SUPPORTED_SCHEMAS:
             errors.append(
                 "frontmatter schema must be one of " + ", ".join(sorted(SUPPORTED_SCHEMAS))
@@ -246,10 +275,13 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
         errors.append(f"invalid status '{status}'; expected one of {', '.join(sorted(STATUSES))}")
 
     sections = _sections(text)
+    compact = contract_format == "compact" and schema == CURRENT_SCHEMA
     required_sections = REQUIRED_SECTIONS
-    if schema in EXPERIENCE_SCHEMAS:
+    if compact:
+        required_sections = COMPACT_REQUIRED_SECTIONS
+    elif schema in EXPERIENCE_SCHEMAS:
         required_sections += EXPERIENCE_SECTIONS
-    if schema in SUPPORTED_SCHEMAS:
+    if not compact and schema in SUPPORTED_SCHEMAS:
         required_sections += ("Execution",)
     section_names = [
         match.group(2).strip()
@@ -261,6 +293,16 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
     ]
     if duplicate_required:
         errors.append("duplicate required section(s): " + ", ".join(duplicate_required))
+    if compact:
+        optional_sections = dict.fromkeys(
+            (*REQUIRED_SECTIONS, *EXPERIENCE_SECTIONS, *VERIFIED_REQUIRED_SECTIONS)
+        )
+        duplicate_optional = [
+            name for name in optional_sections
+            if name not in required_sections and section_names.count(name) > 1
+        ]
+        if duplicate_optional:
+            errors.append("duplicate optional section(s): " + ", ".join(duplicate_optional))
     missing = [name for name in required_sections if name not in sections]
     if missing:
         errors.append("missing required section(s): " + ", ".join(missing))
@@ -276,7 +318,7 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
             errors.append(f"section '{name}' must not contain placeholder text")
 
     learning_mode = _field(sections.get("Learning Mode", ""), "Mode")
-    if learning_mode not in LEARNING_MODES:
+    if (not compact or "Learning Mode" in sections) and learning_mode not in LEARNING_MODES:
         errors.append(
             "Learning Mode must contain 'Mode: COMPLETION', 'Mode: CHECKPOINTS', or 'Mode: OFF'"
         )
@@ -328,7 +370,8 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
             errors.append(f"{identifier} must contain a non-empty Choice field")
         if not _field(block, "Rationale"):
             errors.append(f"{identifier} must contain a non-empty Rationale field")
-        for field in ("Evidence basis", "Sources", "Applicability"):
+        decision_fields = ("Sources",) if compact else ("Evidence basis", "Sources", "Applicability")
+        for field in decision_fields:
             value = _field(block, field)
             if not value:
                 errors.append(f"{identifier} must contain a non-empty {field} field")
@@ -358,6 +401,12 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
             errors.append(f"{identifier} must contain a non-empty Expected field")
         elif schema == CURRENT_SCHEMA and _has_placeholder(expected):
             errors.append(f"{identifier} Expected must not contain placeholder text")
+        if compact:
+            sources = _field(block, "Sources")
+            if not sources:
+                errors.append(f"{identifier} must contain a non-empty Sources field")
+            elif _has_placeholder(sources) or VAGUE_SOURCE_RE.fullmatch(sources):
+                errors.append(f"{identifier} Sources must contain a precise authority locator")
         if required_level not in LEVELS:
             errors.append(f"{identifier} Required evidence must be L1, L2, or L3")
         if schema == CURRENT_SCHEMA:
@@ -376,6 +425,11 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
                 errors.append(
                     f"{identifier} Planned verification must not make evidence conditional "
                     "on availability or feasibility"
+                )
+            elif HEDGED_PLAN_RE.search(planned_verification):
+                warnings.append(
+                    f"{identifier} Planned verification contains an availability hedge; "
+                    "confirm required evidence is not optional"
                 )
         if observed_level not in OBSERVED_LEVELS:
             errors.append(f"{identifier} Observed evidence must be NONE, L1, L2, or L3")
@@ -407,11 +461,12 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
         if criterion_results and any(result != "PASS" for result in criterion_results):
             errors.append("VERIFIED requires every acceptance criterion to be PASS")
 
-        missing_verified = [name for name in VERIFIED_REQUIRED_SECTIONS if name not in sections]
+        verified_sections = VERIFIED_REQUIRED_SECTIONS[:2] if compact else VERIFIED_REQUIRED_SECTIONS
+        missing_verified = [name for name in verified_sections if name not in sections]
         if missing_verified:
             errors.append("VERIFIED missing required section(s): " + ", ".join(missing_verified))
 
-        for name in VERIFIED_REQUIRED_SECTIONS:
+        for name in verified_sections:
             if name in sections and not sections[name]:
                 errors.append(f"VERIFIED section '{name}' must not be empty")
             elif name in sections and _has_placeholder(sections[name]):
@@ -419,7 +474,9 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
 
         retrospective = sections.get("Delivery Retrospective", "")
         retrospective_parts = _subsections(retrospective)
-        missing_parts = [name for name in RETROSPECTIVE_SUBSECTIONS if name not in retrospective_parts]
+        missing_parts = [] if compact else [
+            name for name in RETROSPECTIVE_SUBSECTIONS if name not in retrospective_parts
+        ]
         if retrospective and missing_parts:
             errors.append("Delivery Retrospective missing subsection(s): " + ", ".join(missing_parts))
         for name in RETROSPECTIVE_SUBSECTIONS:
@@ -430,7 +487,7 @@ def validate(text: str, contract_path: str | Path | None = None) -> ValidationRe
                     f"Delivery Retrospective subsection '{name}' must not contain placeholder text"
                 )
 
-    return ValidationResult(tuple(errors))
+    return ValidationResult(tuple(errors), tuple(warnings))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -447,6 +504,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     result = validate(text, args.contract)
+    for warning in result.warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
     if result.valid:
         print(f"VALID: {args.contract} has a valid Intentwise contract structure.")
         print("NOTE: structural validity does not prove implementation or runtime behavior.")

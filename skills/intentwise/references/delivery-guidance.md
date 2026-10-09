@@ -13,7 +13,7 @@ Keep these expectations advisory unless the user explicitly makes a rollout, com
 
 ## Learning mode
 
-Record exactly one mode in the contract:
+Learning defaults to `COMPLETION`. Compact contracts may omit the section for that default; record a selected non-default mode. Full contracts keep their required mode field:
 
 - `COMPLETION` (default): no educational interruption during implementation. Teach through the verified delivery retrospective and include a diagram only when it materially clarifies the system.
 - `CHECKPOINTS`: provide concise, non-blocking learning updates at safe conceptual boundaries while implementation continues. Use when the user asks to stay actively familiar with the changing system.
@@ -39,4 +39,4 @@ Derive maintainability expectations from repository conventions and the risks of
 - Cover important failure behavior with deterministic tests.
 - Document a new architectural or operational dependency.
 
-Do not use vague requirements such as “clean code” or “best practices.” Map every meaningful maintainability expectation to an acceptance criterion with suitable evidence, or identify it as a residual risk when no immediate oracle exists. State that no special expectation exists when repository conventions are sufficient.
+Do not use vague requirements such as “clean code” or “best practices.” Repository conventions guide implementation without each becoming a blocking criterion. Make a maintainability property binding only when an explicit requirement or material risk to the requested outcome warrants it, with suitable acceptance evidence. Keep recommendations advisory and unverifiable future concerns as residual risks. State that no special expectation exists when repository conventions are sufficient.

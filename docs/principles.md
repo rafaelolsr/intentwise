@@ -4,7 +4,7 @@ Intentwise protects product intent without taking over execution. Its unit of co
 
 ## Consequential decision frontier
 
-The frontier separates choices a developer should see from choices a coding agent should make. A choice belongs on the human-visible side when alternatives materially change external behavior, risk, architectural commitment, compatibility, data semantics, or cost of reversal. Local, conventional, reversible choices stay delegated. The frontier should reduce questions: task complexity follows the density of consequential decisions, not lines of code.
+The frontier separates choices a developer should see from choices a coding agent should make. A choice belongs on the human-visible side when alternatives materially change external behavior, risk, architectural commitment, compatibility, data semantics, or cost of reversal. Meaningful product choices remain user-owned even when easy to reverse; routine implementation stays delegated. Resolve facts from the codebase, then ask independent unresolved outcome choices in numbered rounds with recommendations. Wait for answers before advancing dependent choices. Task complexity follows the density of consequential decisions, not lines of code.
 
 ## Evidence-backed discovery
 
@@ -18,7 +18,7 @@ Discovery preserves a proof core: the authoritative request, relevant current pa
 
 Intentwise separates product authority from implementation evidence. Explicit current requirements, current issue or task acceptance text, approved or verified contracts, and explicit organizational decisions constrain what the product should do. Code, tests, logs, and runtime behavior establish what currently exists and where regressions may be, but do not authorize a different outcome by themselves. An explicit current authoritative statement may supersede an older decision only when it intentionally addresses the same behavior; recency or changed code alone is insufficient.
 
-Before drafting or reviewing, the agent searches overlapping `.intentwise/ready/`, `.intentwise/active/`, and `.intentwise/completed/` records by task ID and affected behavior. A defect with a source-established correction is repaired during authoring or returned as `NEEDS REVISION` during review. Local, reversible, or conventional uncertainty remains delegated or explicitly unknown. `BLOCKED` is reserved for a high-consequence outcome that no authority resolves and that would be risky or costly to default, or context required to determine what should be built. Missing verification evidence later produces `UNPROVEN`, not a drafting blocker.
+Before drafting or reviewing, the agent searches overlapping `.intentwise/ready/`, `.intentwise/active/`, and `.intentwise/completed/` records by task ID and affected behavior. A defect with a source-established correction is repaired during authoring or returned as `NEEDS REVISION` during review. Implementation uncertainty remains delegated or explicitly unknown. `BLOCKED` means a material user-owned outcome choice remains unresolved or context required to determine what should be built is missing. Missing verification evidence later produces `UNPROVEN`, not a drafting blocker.
 
 ## Observable target experience
 
@@ -28,9 +28,13 @@ An outcome explains what must become true; the target experience makes that stat
 
 Structural validity is necessary but cannot establish that a draft is safe to approve. Before acceptance criteria are written, the authoring agent derives a temporary semantic view from authoritative sources: applicable operational definitions, input and failure states, classification and reconciliation invariants, missing and unknown behavior, observed baselines, exact compatibility properties, provenance, scope ownership, volatile context, and proof targets. This keeps draft wording from anchoring the review.
 
-After drafting, the agent re-reads the raw sources, tries to construct materially incorrect results that could still pass each criterion, checks the contract against the semantic view and applicable lifecycle contracts, and confirms that every planned verification can obtain its required evidence level. Structural errors remain findings but do not end the semantic audit. In authoring mode, every source-resolved defect is repaired before presentation. In review-only mode, the draft remains untouched and the result is exactly `READY`, `NEEDS REVISION`, or `BLOCKED`. Only a genuinely unresolved consequential outcome or context required to determine what should be built returns to one targeted user question.
+After drafting, the agent re-reads the raw sources, tries to construct materially incorrect results that could still pass each criterion and correct results that unnecessary restrictions would reject, checks the contract against applicable lifecycle contracts, and confirms that planned checks can reach the required evidence. Structural errors remain findings but do not end the semantic audit. In authoring mode, source-resolved defects are repaired before presentation. In review-only mode, the draft remains untouched and the result is exactly `READY`, `NEEDS REVISION`, or `BLOCKED`. Unresolved material outcome choices return to a question round.
 
-This preflight uses the same agent by default so Intentwise remains portable and harness-agnostic. It is a bounded authoring and review check, not self-approval or independent assurance. A compact coverage line makes completion inspectable without persisting the worksheet or adding ceremony to the contract. It does not persist critic logs, require another agent, weaken evidence requirements, or authorize implementation. Independent review remains optional when explicitly requested.
+Every criterion traces to the request, an applicable approved decision, or a protected constraint. A criterion the agent proposes to guard against a concrete failure the sources imply is allowed only when labelled `Agent-proposed:` and surfaced at approval for the user to keep or drop; preferences and generic best practice are not obligations. A clear low-consequence task needs no contract or preflight, and a small change needs only the minimal preflight. The structural validator rejects plans that make required evidence itself optional but only warns about generic hedges such as “where possible”; the semantic preflight decides whether required evidence has become optional.
+
+Audit additions and exclusions symmetrically. Current bugs and descriptive limitations do not authorize carving requested behavior out of scope. An ordinary read/decode/parse failure belongs in a requested failure-continuation policy; rejecting it does not mean supporting a new format. Source-established corrections do not need another product question. Present a genuine material scope change prominently before approval.
+
+This preflight uses the same agent by default and remains portable. It is a bounded authoring/review check, not approval or independent assurance. A brief verdict is enough; coverage counts are optional and do not prove completeness. Independent review remains optional when requested.
 
 ## Autonomy boundary
 
@@ -40,11 +44,15 @@ Approval and execution are distinct. A deferred approved contract is build-ready
 
 ## Maintainability without ceremony
 
-Maintainability expectations must name concrete repository boundaries, compatibility properties, duplication risks, tests, or documentation obligations and map them to acceptance evidence. Intentwise does not pretend that long-term ease of change has an immediate deterministic oracle. Unverifiable concerns remain explicit residual risks rather than vague claims of quality.
+Repository conventions guide implementation; only explicit requirements or material risks to the requested outcome turn maintainability properties into blocking criteria. Binding properties need suitable evidence. Recommendations remain advisory, and unverifiable future concerns remain residual risks rather than vague claims of quality.
 
 ## Contract-first verification
 
 Verification begins with each acceptance criterion, not with a tour of the implementation. For each criterion, identify what must be observable, obtain evidence at or above the required level, and record one result. Implementation claims may point toward evidence but cannot replace it.
+
+Use existing adequate checks first. Add a test, baseline replay, snapshot or supplementary assertion for a specific uncovered property, rather than stack methods that prove the same thing. A check may serve several criteria; stop once suitable evidence covers them.
+
+Criteria protect material authorized outcomes with agreed tolerances, not forecast implementation details or illustrative snapshots. Planned tools, fixtures, and sequence may evolve when the replacement proves the same property and boundary with equivalent or stronger evidence. A material change to the outcome, constraint, tolerance, or minimum evidence requires a focused user-approved amendment retaining the prior commitment. An amendment changes the agreement; it does not prove the implementation.
 
 ## PASS, FAIL, and UNPROVEN
 
@@ -59,6 +67,8 @@ A demonstrated `FAIL` returns to implementation and verification within the appr
 ## Learn from delivery
 
 A verified contract is also a compact teaching record for developers who did not watch the work. It explains what changed, how the delivered behavior fits the existing system, meaningful autonomous implementation decisions and their drawbacks, residual risks, the actual file surface, and verification evidence. It is not an activity log, exhaustive diff, implementation plan, or disclosure of hidden reasoning.
+
+New contracts default to the compact format. Ordinary work needs a short retrospective, with evidence retained in its criterion ledger. Routine formatting, helper placement and test-file organization need no decision essays. Promote knowledge only when it adds durable value beyond the contract; do not duplicate the same explanation. Existing full records retain their format and validation rules.
 
 Learning mode controls timing, not authority. `COMPLETION` teaches at delivery, `CHECKPOINTS` adds non-blocking explanations at consequential conceptual boundaries, and `OFF` suppresses educational commentary while retaining the factual retrospective. A checkpoint never approves or redirects delegated implementation by itself.
 

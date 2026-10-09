@@ -84,7 +84,7 @@ Before verification, classify what the delivery taught:
 - **External integration:** create or update `.intentwise/knowledge/external/`.
 - **Operational behavior:** create or update `.intentwise/knowledge/operations/`.
 
-Link knowledge documents to their completed-contract provenance and link the contract's `Knowledge Promotion` section back to every concept changed. Never store secrets, credentials, tokens, customer data, or unverified transient state.
+Promote a concept only when future work benefits from a canonical fact or decision beyond this task's record. Do not create a second description merely because a helper moved, JSON formatting changed or a test file differs from the forecast. If existing documentation and the retrospective are sufficient, keep the facts task-local. Link any promoted document to its completed-contract provenance and record the path in the retrospective or an optional `Knowledge Promotion` section; full contracts retain their required promotion section. Never store secrets, credentials, tokens, customer data, or unverified transient state.
 
 ## Keep rich assets separate
 

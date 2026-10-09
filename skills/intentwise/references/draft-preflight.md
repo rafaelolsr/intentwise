@@ -2,6 +2,10 @@
 
 Run this preflight in two phases: establish the source-derived semantics, then adversarially audit the completed `DRAFT`. This order prevents plausible draft wording from anchoring its own review. The preflight is an authoring and review check, not approval, implementation verification, or proof that cited evidence is true.
 
+## Minimum for small changes
+
+For a small change (one behavior, one or two criteria, no cross-boundary, data, security or compatibility concern), the preflight is: read the request and the affected code, confirm each criterion traces to the request or a protected constraint, and confirm each planned check would fail on a materially wrong result. Skip the worksheet, the case-by-property matrix and any second audit pass. Use the full sections below only when the evidence triggers they name.
+
 ## Modes and verdicts
 
 - **Authoring mode:** create or revise the draft. Silently correct every source-resolved defect before presenting it, using a bounded audit loop without exposing a known-fix draft merely because another pass is needed.
@@ -11,11 +15,9 @@ Return one verdict:
 
 - `READY`: structural validation passes and no material semantic finding remains.
 - `NEEDS REVISION`: one or more defects have corrections already established by authoritative sources. In authoring mode, apply those corrections before presentation whenever the file is safely editable; this verdict is primarily for review-only mode or a correction that cannot be applied within the current request.
-- `BLOCKED`: approval depends on a genuinely new consequential decision that no authoritative source resolves and for which a default would create material risk or costly reversal, or context is missing that is required to determine what should be built.
+- `BLOCKED`: approval depends on an unresolved user-owned choice that materially changes the outcome, risk, compatibility, or commitment, or context is missing that is required to determine what should be built. Easy reversal does not authorize choosing product behavior for the user.
 
-Do not use `BLOCKED` for a defect with a known correction, a local or reversible implementation choice, difficult work, unavailable observed evidence, a verification environment that may later yield `UNPROVEN`, or uncertainty that can remain explicit without changing the approved outcome. The preflight must preserve both safety and progress.
-
-Do not ask which mode to use when the user's request is already clear.
+Do not use `BLOCKED` for a defect with a known correction, a delegated implementation choice, difficult work, unavailable observed evidence, a verification environment that may later yield `UNPROVEN`, or uncertainty that can remain explicit without changing the approved outcome. The preflight must preserve both safety and progress.
 
 ## Review inputs
 
@@ -61,11 +63,13 @@ Classify each material source before reconciling it:
 - **Descriptive:** code, tests, logs, snapshots, and current runtime behavior. These establish what exists, what is feasible, and where a regression may be; they do not authorize a product change by themselves.
 - **Advisory:** external guidance and model knowledge. These may support a recommendation but do not override repository-specific product authority.
 
-An explicit current normative source may supersede an older decision only when it intentionally addresses the same behavior. A newer timestamp, changed implementation, failing test, or proposed draft is not supersession. If descriptive evidence conflicts with an applicable approved or verified decision, preserve the decision and classify the implementation as a possible regression. If one normative source clearly resolves a draft defect, the correction is source-resolved: repair it in authoring mode or return `NEEDS REVISION` in review-only mode. Use `BLOCKED` only when normative sources genuinely conflict or leave a high-consequence outcome undecided.
+An explicit current normative source may supersede an older decision only when it intentionally addresses the same behavior. A newer timestamp, changed implementation, failing test, or proposed draft is not supersession. If descriptive evidence conflicts with an applicable approved or verified decision, preserve the decision and classify the implementation as a possible regression. If one normative source clearly resolves a draft defect, the correction is source-resolved: repair it in authoring mode or return `NEEDS REVISION` in review-only mode. Use `BLOCKED` when normative sources genuinely conflict or leave a material user-owned outcome undecided.
 
 ## Phase 1: source-derived semantic readiness
 
 Before writing criteria or evidence plans, build a temporary worksheet from the sources. Keep it compact, but make each applicable item concrete:
+
+For each proposed obligation, identify the explicit requirement or the concrete connection to the requested outcome or an existing protected constraint. A hypothetical future risk, generic best practice, adjacent code smell, or available tool is insufficient. If that connection is absent, remove the obligation or leave it as optional guidance. The worksheet is a reasoning aid, not another deliverable or proof requirement; a few outcome-and-check notes are enough for a small change.
 
 | Concern | What the worksheet must establish |
 | --- | --- |
@@ -85,9 +89,9 @@ Use project-relative paths and a symbol or test name when practical for reposito
 
 Before grouping criteria, split the normative sources into independently falsifiable commitments. Keep each condition, exception, precedence rule, quantifier, protected property, and explicit exclusion attached to its source locator. A broad label such as “replay-safe,” “backward compatible,” or “all errors handled” is not a substitute for those obligations.
 
-Use the temporary worksheet to map each commitment to the exact criterion clause that preserves it and the verification assertion that checks it. Count source commitments, not files read or criteria written. Check the mapping in both directions: every required commitment is covered, and every new normative promise is authorized. A citation identifies authority; it does not silently import everything in that file.
+Use the temporary worksheet to map each material commitment to its criterion clause and verification assertion. Check both directions: required commitments are covered, and added obligations or exclusions have authority. A citation does not import unrelated requirements. Conventions, examples and recommendations are not automatic acceptance obligations. Current bugs or uncaught exceptions do not authorize narrowing the requested outcome. When the request requires handling failed items and continuing, a routine read, decode or parse failure belongs in that policy; rejecting bad input does not require supporting a new input format. Repair a source-resolved gap instead of inventing a carve-out or asking another product question. A genuinely different scope needs a focused choice presented prominently before approval, not buried in a draft.
 
-Group related commitments to keep the contract readable, but never drop a distinction to meet a size or criterion-count target. Either state the behavior explicitly or incorporate an exact source section as binding, identifying its applicable obligations and exclusions. Do not copy an entire previous contract or inherit its observed PASS results. Carry forward applicable approved outcomes, then plan fresh evidence for the current change.
+Group related commitments without dropping material distinctions. State them once or bind an exact source section with its applicable obligations and exclusions. Do not copy an entire previous contract or inherit its PASS labels. Carry forward applicable outcomes and reuse adequate checks with evidence applicable to the current implementation; add only uncovered assertions.
 
 For example, a requirement to preserve CLI behavior may protect output bytes, output stream, diagnostic order, and exit code independently. A criterion saying only “the CLI stays compatible” loses those distinctions. Preserve just the properties the sources actually protect; do not generalize this example into mandatory CLI or pipeline rules for unrelated tasks.
 
@@ -115,6 +119,18 @@ Distinguish missing, unknown, malformed, unsupported, and absent-by-design state
 
 Treat observed counts, snapshots, identifiers, and current examples as baselines unless the source explicitly makes them fixed acceptance targets. Live or mutable validation must report the current result and any drift from the baseline rather than failing solely because the snapshot changed.
 
+### Acceptance boundaries and allowed variation
+
+Criteria should describe the smallest set of observable outcomes and protected constraints that establishes success. Avoid exact output, zero deviation, exhaustive guarantees, mandatory tools, or additional cleanup unless the sources require them or they protect a material risk. Keep advisory delivery and maintainability guidance outside blocking criteria.
+
+Where variation matters to acceptance, state the allowed range or equivalence in `Expected` or the relevant constraint: for example, latency at most an agreed limit, required fields with ordering delegated, or layout that preserves the agreed interactions. Do not invent a tolerance for an explicit exact requirement. Resolve an undecided material tolerance in a question round. Do not enumerate harmless implementation freedoms individually; unspecified mechanisms remain delegated.
+
+Choose the lowest evidence level sufficient for the actual promise. Deterministic evidence may establish local logic; real platform execution is needed for a platform-only guarantee. Do not demand a live deployment for every task merely because one could exist. Flag a known environment dependency before approval and distinguish necessary acceptance proof from optional operational follow-up.
+
+A deterministic subprocess check through the real local CLI can satisfy an L2 requirement for JSON, exit behavior, arithmetic, or source preservation. Calling the actual entry point does not itself make L3 the necessary minimum. Require L3 when acceptance depends on observing conditions that those local checks cannot establish, such as real deployment, integration, or an interactive experience; preserve explicit user-required evidence.
+
+Use the smallest checks that can distinguish success from a materially wrong result. Reuse adequate existing evidence and test infrastructure; do not require another test suite, benchmark, screenshot, audit artifact, or independent reviewer just because it might add assurance. Expand proof only for an uncovered material property, an observed failure, or an explicit requirement. A tool failure is not a product failure; choose an equivalent suitable method before declaring proof unavailable.
+
 ### Compatibility and provenance
 
 Replace vague promises such as “compatible,” “unchanged,” or “preserved” with the exact observable properties that must remain identical or intentionally differ, including content, selection, ordering, identity, timing, or canonical outputs when applicable. Identify required source provenance. When behavior may be static or dynamically driven, preserve the binding or expression identity without claiming to evaluate it unless evaluation is in scope.
@@ -132,6 +148,8 @@ Write the contract from the ready worksheet, then re-read the raw sources and au
 ### Acceptance counterexamples
 
 For each criterion, construct the smallest materially incorrect implementation or result that could still satisfy its wording. Tighten the criterion when a wrong target, partial behavior, silent fallback, or out-of-scope substitute could pass. Preserve agreed concrete identifiers and scenarios when they are part of the required behavioral proof; do not hard-code an example that was only illustrative.
+
+Also test a materially correct implementation that differs from the forecast, example, or chosen test method. If the draft rejects it without an authorized reason, remove the unnecessary restriction or make the allowed variation explicit. Audit for both missed obligations and invented obligations.
 
 ### Evidence readiness
 
@@ -151,7 +169,7 @@ Choose proof that matches the promise. Exact compatibility needs a comparison to
 
 A new test or fixture may be planned before it exists. Describe how it will be constructed and what it must assert; do not invent an existing test name as evidence. A platform-only guarantee needs a concrete run and observed assertions on that platform, with cleanup when the run creates resources. Local doubles do not satisfy that guarantee.
 
-The plan must be executable as written. Reject conditions such as “if available,” “when fixture data is available,” or “when possible”; name a fixture or scenario that exists or establish how it will be created. The plan need not execute during drafting. If a named live environment or credential is unavailable during later verification, retain the criterion and report `UNPROVEN`; do not block drafting unless the missing context prevents the team from determining what should be built or whether the target is feasible. The plan is not observed evidence. Before verification, keep `Observed evidence: NONE`, `Result: UNPROVEN`, and `Evidence: Not yet collected.` unless qualifying evidence has actually been obtained.
+The plan must identify a feasible starting method. Prefer existing checks that cover the promised properties; add a focused test or assertion only for a gap. A baseline extraction, second suite, snapshot or independent assertion is an alternative or gap-filling method, not automatically an additional gate. Do not promise multiple checks of the same property merely to strengthen the appearance of proof. Reject availability escape clauses; establish how a needed fixture can be made. Equivalent or stronger methods may replace the plan without approval when they preserve its property and boundary. An explicitly required platform or scenario remains binding; a mock cannot replace it. Missing necessary evidence is `UNPROVEN`. A plan is not observed evidence: keep `Observed evidence: NONE`, `Result: UNPROVEN`, and `Evidence: Not yet collected.` until qualifying evidence exists.
 
 ### Contract and lifecycle consistency
 
@@ -166,11 +184,11 @@ Route remaining uncertainty by consequence:
 | Condition | Action |
 | --- | --- |
 | Authoritative correction exists | Repair in authoring mode; `NEEDS REVISION` in review-only mode |
-| Choice is local, reversible, conventional, or can remain unknown | Delegate it or record the explicit unknown/gap; continue |
+| Choice concerns implementation within the outcome, or can remain unknown without changing it | Delegate it or record the explicit unknown/gap; continue |
 | Verification cannot run later | Preserve the criterion and report `UNPROVEN` during verification |
-| High-consequence outcome remains unresolved, no authority resolves it, and a default is risky or costly to reverse | `BLOCKED`; ask one targeted outcome-focused question |
+| Unresolved user-owned choice materially changes the outcome, risk, compatibility, or commitment | `BLOCKED`; ask the next independent question round |
 
-If a true blocker remains, keep the file under `drafts/`, ask one targeted outcome-focused question, and do not request approval. Do not draft a complete speculative contract first when the blocker can be identified from the source-derived view.
+If unresolved user-owned choices remain, keep any existing file under `drafts/`, ask the next independent question round, and do not request approval. Do not draft a complete speculative contract first when those choices can be identified from the source-derived view.
 
 In review-only mode, do not revise the file. Finish the complete structural and semantic review and return `NEEDS REVISION` for source-resolved defects. Independent review may be used when the user explicitly requests it and the harness supports it, but it is never required by Intentwise.
 
@@ -181,9 +199,9 @@ Every new acceptance criterion must record precise authority locators in its
 behavior is not product authority unless an authoritative requirement protects
 it.
 
-Derive the coverage line from the completed commitment-to-clause-to-assertion mapping. Do not report full coverage simply because every source was read or every criterion has a plan. A remaining source-resolved omission is `NEEDS REVISION`, even when structural validation passes. Repair it during authoring; if it cannot be repaired in this turn, report the specific gap without requesting approval.
+If reporting coverage counts, derive them from the completed commitment-to-clause-to-assertion mapping. Reading every source or having a plan for every criterion does not establish completeness. A source-resolved omission is `NEEDS REVISION` even when structural validation passes; repair it during authoring or report the specific gap without requesting approval.
 
-Keep the user-facing result compact. Coverage counts make the internal review inspectable without exposing the worksheet or adding sections to the contract:
+Keep the user-facing result compact: normally the verdict, structural/semantic checks and any material gap. Coverage counts are optional for a complex review or an explicitly requested audit; they are not evidence of completeness. When useful, report them from the actual commitment mapping:
 
 ```text
 Draft preflight: READY
@@ -213,4 +231,4 @@ Draft preflight: BLOCKED
 - Blocking gap: <decision the available evidence cannot resolve>
 ```
 
-If a review contains both source-resolved findings and a blocker, use `BLOCKED`, include the established findings concisely, and ask only the one consequential question needed to continue.
+If a review contains both source-resolved findings and unresolved user-owned choices, use `BLOCKED`, include the established findings concisely, and ask the independent questions needed to continue. Defer dependent choices to later rounds.

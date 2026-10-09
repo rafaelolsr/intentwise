@@ -54,6 +54,62 @@ class ContractValidationTests(unittest.TestCase):
     def test_valid_contract(self) -> None:
         self.assertTrue(validate(self.fixture("valid.md")).valid)
 
+    def test_compact_contract_needs_no_full_experience_or_learning_sections(self) -> None:
+        self.assertTrue(validate(self.fixture("compact.md")).valid)
+
+    def test_compact_format_cannot_relax_a_legacy_schema(self) -> None:
+        text = self.fixture("compact.md").replace("intentwise/v0.4", "intentwise/v0.3")
+        self.assertIn("compact format requires schema intentwise/v0.4", validate(text).errors)
+
+    def test_unknown_format_is_rejected(self) -> None:
+        text = self.fixture("compact.md").replace("format: compact", "format: minimal")
+        self.assertIn("frontmatter format must be compact or full", validate(text).errors)
+
+    def test_compact_criteria_require_source_authority_locators(self) -> None:
+        for replacement in ("", "Sources: repository\n", "Sources: <task>\n"):
+            with self.subTest(replacement=replacement):
+                text = re.sub(r"^Sources:.*\n", replacement, self.fixture("compact.md"), flags=re.MULTILINE)
+                self.assertTrue(any("AC01" in error and "Sources" in error for error in validate(text).errors))
+
+    def test_compact_optional_learning_mode_and_decisions_remain_validated(self) -> None:
+        text = self.fixture("compact.md") + "\n## Learning Mode\n\nMode: MAYBE\n"
+        self.assertTrue(any("Learning Mode" in error for error in validate(text).errors))
+        text = self.fixture("compact.md") + (
+            "\n## Consequential Decisions\n\n### D001 — Input error\n"
+            "Choice: Reject invalid bytes.\nRationale: Preserve a usable result.\n"
+            "Sources: User-supplied IW-301 request.\n"
+        )
+        self.assertTrue(validate(text).valid)
+        self.assertIn("D001 must contain a non-empty Sources field", validate(text.replace(
+            "Sources: User-supplied IW-301 request.\n", ""
+        )).errors)
+
+    def test_compact_verified_accepts_brief_retrospective_but_requires_proof(self) -> None:
+        text = (
+            self.fixture("compact.md").replace("Status: APPROVED", "Status: VERIFIED")
+            .replace("Observed evidence: NONE", "Observed evidence: L2")
+            .replace("Result: UNPROVEN", "Result: PASS")
+            .replace("Evidence: Not yet collected.", "Evidence: Both subprocess error-mode regressions pass.")
+            + "\n## Actual Change Surface\n\ncli.py [modified]; tests/test_cli.py [modified].\n"
+            + "\n## Delivery Retrospective\n\nDecode errors follow the existing read-error handler; both modes return exit 2. No material trade-off or known residual risk.\n"
+        )
+        self.assertTrue(validate(text, ".intentwise/completed/IW-301.md").valid)
+        for old, new in (
+            ("Observed evidence: L2", "Observed evidence: L1"),
+            ("Observed evidence: L2", "Observed evidence: NONE"),
+            ("Result: PASS", "Result: UNPROVEN"),
+            ("Disposition: CONTINUE", "Disposition: DEFERRED"),
+        ):
+            with self.subTest(change=new):
+                self.assertFalse(validate(text.replace(old, new), ".intentwise/completed/IW-301.md").valid)
+
+    def test_compact_verified_requires_a_real_surface_and_retrospective(self) -> None:
+        text = self.fixture("compact.md").replace("Status: APPROVED", "Status: VERIFIED")
+        self.assertIn("VERIFIED missing required section(s): Actual Change Surface, Delivery Retrospective", validate(text).errors)
+        text += "\n## Actual Change Surface\n\n<files>\n\n## Delivery Retrospective\n\nTODO\n"
+        self.assertIn("VERIFIED section 'Actual Change Surface' must not contain placeholder text", validate(text).errors)
+        self.assertIn("VERIFIED section 'Delivery Retrospective' must not contain placeholder text", validate(text).errors)
+
     def test_golden_completed_contract_is_valid(self) -> None:
         self.assertTrue(
             validate(GOLDEN_CONTRACT.read_text(encoding="utf-8"), GOLDEN_CONTRACT).valid
@@ -437,6 +493,55 @@ All criteria pass.
         )
         self.assertTrue(validate(text).valid, validate(text).errors)
 
+    def test_prose_angle_brackets_are_not_placeholders(self) -> None:
+        for expected in (
+            "Latency <200ms for inputs >1k rows",
+            "Returns a Map<String, int> keyed by team",
+            "Count is a < b and c > d",
+        ):
+            with self.subTest(expected=expected):
+                text = re.sub(r"^Expected:.*$", f"Expected: {expected}",
+                              self.fixture("valid.md"), count=1, flags=re.MULTILINE)
+                self.assertTrue(validate(text).valid, validate(text).errors)
+
+    def test_template_markers_are_still_placeholders(self) -> None:
+        for expected in ("<observable behavior>", "Rows sorted by <short title>", "<ISO 8601 UTC>"):
+            with self.subTest(expected=expected):
+                text = re.sub(r"^Expected:.*$", f"Expected: {expected}",
+                              self.fixture("valid.md"), count=1, flags=re.MULTILINE)
+                self.assertIn("AC01 Expected must not contain placeholder text", validate(text).errors)
+
+    def test_generic_availability_hedge_warns_without_blocking(self) -> None:
+        for plan in (
+            "Reuse existing fixtures when available; assert the stored metadata has no payload bytes.",
+            "Run the persistence tests, and exercise real data where possible.",
+        ):
+            with self.subTest(plan=plan):
+                text = re.sub(r"^Planned verification:.*$", f"Planned verification: {plan}",
+                              self.fixture("valid.md"), count=1, flags=re.MULTILINE)
+                result = validate(text)
+                self.assertTrue(result.valid, result.errors)
+                self.assertTrue(any("availability hedge" in w for w in result.warnings))
+
+    def test_optional_required_evidence_is_still_an_error(self) -> None:
+        for plan in (
+            "Run the L3 scenario if the environment is available.",
+            "Run the mapping check where supported.",
+            "Exercise the query unless credentials are unavailable.",
+        ):
+            with self.subTest(plan=plan):
+                text = re.sub(r"^Planned verification:.*$", f"Planned verification: {plan}",
+                              self.fixture("valid.md"), count=1, flags=re.MULTILINE)
+                self.assertFalse(validate(text).valid)
+
+    def test_instructions_keep_trivial_skip_and_agent_proposed_label(self) -> None:
+        # Guards the wording only; it does not test agent behavior.
+        skill = (Path(__file__).resolve().parents[1] / "skills/intentwise/SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("needs no questions, no contract and no preflight", skill)
+        self.assertIn("`Agent-proposed:`", skill)
+        questioning = (Path(__file__).resolve().parents[1] / "skills/intentwise/references/questioning.md").read_text(encoding="utf-8")
+        self.assertIn("Do not ask whether existing behavior should be preserved", questioning)
+
     def test_execution_disposition_must_be_known(self) -> None:
         text = self.fixture("valid.md").replace(
             "Disposition: CONTINUE",
@@ -520,6 +625,26 @@ All criteria pass.
             1,
         )
         self.assertIn("duplicate required section(s): Outcome", validate(text).errors)
+
+    def test_compact_optional_sections_cannot_mask_earlier_content(self) -> None:
+        text = self.fixture("compact.md")
+        cases = {
+            "Consequential Decisions": (
+                "### D001 — Retention\nChoice: Keep existing policy.\n"
+                "Rationale: Preserve requested behavior.\n",
+                "### D001 — Retention\nChoice: Keep existing policy.\n"
+                "Rationale: Preserve requested behavior.\nSources: `src/events/`.\n",
+            ),
+            "Learning Mode": ("Mode: UNKNOWN\n", "Mode: COMPLETION\n"),
+            "Actual Change Surface": ("<pending>\n", "src/cli.py\n"),
+            "Delivery Retrospective": ("<pending>\n", "Existing tests passed.\n"),
+        }
+        for section, (earlier, later) in cases.items():
+            with self.subTest(section=section):
+                duplicated = text + f"\n## {section}\n\n{earlier}\n## {section}\n\n{later}"
+                self.assertIn(
+                    f"duplicate optional section(s): {section}", validate(duplicated).errors
+                )
 
     def test_decision_requires_auditable_evidence_basis(self) -> None:
         text = self.fixture("valid.md").replace(
